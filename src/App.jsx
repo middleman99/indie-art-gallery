@@ -11,6 +11,7 @@ import ListArt from './pages/ListArt'
 import Admin from './pages/Admin'
 import ConnectStripe from './pages/ConnectStripe'
 import PieceDetail from './pages/PieceDetail'
+import Checkout from './pages/Checkout'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -27,6 +28,26 @@ function ArtistRoute({ children }) {
   return children
 }
 
+function OrderComplete() {
+  const navigate = useNavigate()
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', padding: 'var(--sp-6)', textAlign: 'center' }}>
+      <div style={{ fontSize: '4rem', marginBottom: 'var(--sp-4)' }}>🎨</div>
+      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--sp-3)' }}>
+        Payment Complete!
+      </h2>
+      <p style={{ color: 'var(--slate)', marginBottom: 'var(--sp-6)', maxWidth: 300 }}>
+        Your purchase is confirmed. The artist will be notified and funds will be released after you confirm delivery.
+      </p>
+      <button className="btn btn-primary" onClick={() => navigate('/')}>
+        Back to Discover
+      </button>
+    </div>
+  )
+}
+
+import { useNavigate } from 'react-router-dom'
+
 export default function App() {
   const { user } = useAuth()
 
@@ -42,10 +63,12 @@ export default function App() {
         <Route path="/connect-stripe"  element={<ProtectedRoute><ConnectStripe /></ProtectedRoute>} />
         <Route path="/admin"           element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="/piece/:id"       element={<PieceDetail />} />
+        <Route path="/checkout"        element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+        <Route path="/order-complete"  element={<OrderComplete />} />
         <Route path="*"                element={<Navigate to="/" replace />} />
       </Routes>
 
-      {!['/auth'].includes(window.location.pathname) && <BottomNav />}
+      {!['/auth', '/checkout', '/order-complete'].includes(window.location.pathname) && <BottomNav />}
     </>
   )
 }

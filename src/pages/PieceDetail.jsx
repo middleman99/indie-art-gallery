@@ -1,14 +1,13 @@
 // src/pages/PieceDetail.jsx
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import TopBar from '../components/TopBar'
 import { Heart, Share2, Package, Monitor, Gavel, ShoppingBag, Clock } from 'lucide-react'
 
-// Fee calculator
 function calculateFees(price) {
   let artistFee, buyerPremium
   if (price >= 500) {
@@ -35,11 +34,18 @@ function calculateFees(price) {
   }
 }
 
-// Demo pieces for testing
 const DEMO_PIECES = {
   'a1': { id: 'a1', title: 'Golden Hour', artistName: 'Maya R.', artistId: 'demo1', price: 280, listingType: 'fixed', artType: 'Painting', medium: 'Acrylic on canvas', dimensions: '24" x 36"', year: '2024', description: 'A stunning depiction of the last light of day washing over an urban landscape. Painted with bold strokes and warm tones.', deliveryType: 'physical', allowOffers: true },
   'a2': { id: 'a2', title: 'Neon Dreams', artistName: 'Dev K.', artistId: 'demo2', currentBid: 120, startingBid: 80, listingType: 'auction', artType: 'Digital', description: 'A digital exploration of city life at night. Available as a high resolution print.', deliveryType: 'digital', allowOffers: false },
   'a3': { id: 'a3', title: 'Untitled No. 7', artistName: 'Sara L.', artistId: 'demo3', price: 95, listingType: 'fixed', artType: 'Drawing', medium: 'Charcoal on paper', dimensions: '11" x 14"', year: '2025', description: 'Part of an ongoing series exploring negative space and form.', deliveryType: 'physical', allowOffers: false },
+  'b1': { id: 'b1', title: 'Golden Hour', artistName: 'Maya R.', artistId: 'demo1', price: 280, listingType: 'fixed', artType: 'Painting', medium: 'Acrylic on canvas', dimensions: '24" x 36"', year: '2024', description: 'A stunning depiction of the last light of day washing over an urban landscape.', deliveryType: 'physical', allowOffers: true },
+  'b2': { id: 'b2', title: 'Neon Dreams', artistName: 'Dev K.', artistId: 'demo2', currentBid: 120, startingBid: 80, listingType: 'auction', artType: 'Digital', description: 'A digital exploration of city life at night.', deliveryType: 'digital', allowOffers: false },
+  'b3': { id: 'b3', title: 'Untitled No. 7', artistName: 'Sara L.', artistId: 'demo3', price: 95, listingType: 'fixed', artType: 'Drawing', medium: 'Charcoal on paper', dimensions: '11" x 14"', year: '2025', description: 'Part of an ongoing series exploring negative space and form.', deliveryType: 'physical', allowOffers: false },
+  'b4': { id: 'b4', title: 'City Pulse', artistName: 'James O.', artistId: 'demo4', currentBid: 340, startingBid: 200, listingType: 'auction', artType: 'Photography', description: 'Urban energy captured in a single frame.', deliveryType: 'physical', allowOffers: false },
+  'b5': { id: 'b5', title: 'Soul Fragment', artistName: 'Nia P.', artistId: 'demo5', price: 175, listingType: 'fixed', artType: 'Mixed Media', description: 'An exploration of identity through layered materials.', deliveryType: 'physical', allowOffers: true },
+  'b6': { id: 'b6', title: 'Bloom', artistName: 'Chen W.', artistId: 'demo6', price: 420, listingType: 'fixed', artType: 'Textile', description: 'Hand woven textile art with natural dyes.', deliveryType: 'physical', allowOffers: false },
+  'b7': { id: 'b7', title: 'Dark Matter', artistName: 'Alex T.', artistId: 'demo7', price: 680, listingType: 'fixed', artType: 'Painting', description: 'Large format abstract painting.', deliveryType: 'physical', allowOffers: true },
+  'b8': { id: 'b8', title: 'Frequency', artistName: 'Jo M.', artistId: 'demo8', currentBid: 55, startingBid: 40, listingType: 'auction', artType: 'Digital', description: 'Digital art exploring sound and color.', deliveryType: 'digital', allowOffers: false },
 }
 
 const ART_EMOJIS = ['🎨', '🖼️', '🎭', '✏️', '🖌️', '🎪', '🌈', '🎬']
@@ -47,12 +53,11 @@ const ART_EMOJIS = ['🎨', '🖼️', '🎭', '✏️', '🖌️', '🎪', '�
 export default function PieceDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const toast = useToast()
 
   const [piece, setPiece] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [showCheckout, setShowCheckout] = useState(false)
   const [bidAmount, setBidAmount] = useState('')
   const [offerAmount, setOfferAmount] = useState('')
   const [showOffer, setShowOffer] = useState(false)
@@ -61,13 +66,11 @@ export default function PieceDetail() {
 
   useEffect(() => {
     async function load() {
-      // Check demo pieces first
       if (DEMO_PIECES[id]) {
         setPiece(DEMO_PIECES[id])
         setLoading(false)
         return
       }
-      // Otherwise load from Firebase
       try {
         const snap = await getDoc(doc(db, 'listings', id))
         if (snap.exists()) setPiece({ id: snap.id, ...snap.data() })
@@ -100,7 +103,7 @@ export default function PieceDetail() {
 
   function handleBuyNow() {
     if (!user) { navigate('/auth'); return }
-    setShowCheckout(true)
+    navigate('/checkout', { state: { piece } })
   }
 
   async function handlePlaceBid() {
@@ -261,49 +264,6 @@ export default function PieceDetail() {
                 <input className="input" type="number" placeholder="Your offer" value={offerAmount} onChange={e => setOfferAmount(e.target.value)} style={{ paddingLeft: 28 }} />
               </div>
               <button className="btn btn-primary" onClick={handleOffer}>Send</button>
-            </div>
-          </div>
-        )}
-
-        {/* Checkout sheet */}
-        {showCheckout && (
-          <div className="overlay" onClick={() => setShowCheckout(false)}>
-            <div className="sheet" onClick={e => e.stopPropagation()}>
-              <div className="sheet-handle" />
-              <h3 style={{ fontFamily: 'var(--font-display)', marginBottom: 'var(--sp-4)' }}>Complete Purchase</h3>
-
-              <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', marginBottom: 'var(--sp-4)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--sp-2)', fontSize: 'var(--text-sm)' }}>
-                  <span style={{ color: 'var(--slate)' }}>{piece.title}</span>
-                  <span>${piece.price}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--sp-3)', fontSize: 'var(--text-sm)' }}>
-                  <span style={{ color: 'var(--slate)' }}>Buyer's premium ({fees.buyerPremiumPercent}%)</span>
-                  <span style={{ color: 'var(--slate)' }}>+${fees.buyerPremiumAmount}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 'var(--sp-3)', borderTop: '1px solid rgba(255,248,240,0.08)', fontWeight: 700 }}>
-                  <span>Total</span>
-                  <span style={{ color: 'var(--coral)', fontFamily: 'var(--font-mono)' }}>${fees.total}</span>
-                </div>
-              </div>
-
-              <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,215,0,0.06)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,215,0,0.15)', marginBottom: 'var(--sp-5)', fontSize: 'var(--text-xs)', color: 'var(--slate)', display: 'flex', gap: 'var(--sp-3)' }}>
-                <Clock size={14} style={{ flexShrink: 0, color: 'var(--gold)' }} />
-                <span>You have <strong style={{ color: 'var(--gold)' }}>1 hour</strong> to complete payment after confirming. Card on file will be charged automatically if autopay is enabled.</span>
-              </div>
-
-              <button
-                className="btn btn-primary btn-lg btn-full"
-                onClick={() => {
-                  toast.info('Stripe checkout coming in next update!')
-                  setShowCheckout(false)
-                }}
-              >
-                Proceed to Payment — ${fees.total}
-              </button>
-              <button className="btn btn-ghost btn-full" style={{ marginTop: 'var(--sp-3)' }} onClick={() => setShowCheckout(false)}>
-                Cancel
-              </button>
             </div>
           </div>
         )}

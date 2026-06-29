@@ -9,7 +9,11 @@ export default function ArtCard({ piece }) {
   const emoji = ART_EMOJIS[piece.id?.charCodeAt(0) % ART_EMOJIS.length] || '🎨'
 
   return (
-    <div className="art-card" onClick={() => navigate(`/piece/${piece.id}`)}>
+    <div
+      className="art-card"
+      onClick={() => navigate(`/piece/${piece.id}`)}
+      style={{ cursor: 'pointer' }}
+    >
       {piece.imageUrl ? (
         <img src={piece.imageUrl} alt={piece.title} className="art-card-img" />
       ) : (
@@ -18,12 +22,14 @@ export default function ArtCard({ piece }) {
       <div className="art-card-body">
         <div className="art-card-title truncate">{piece.title}</div>
         <div className="art-card-artist truncate">by {piece.artistName}</div>
-        <div className="flex items-center justify-between mt-2">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--sp-2)' }}>
           <div className={`art-card-price ${piece.listingType === 'auction' ? 'auction' : ''}`}>
-            {piece.listingType === 'auction' ? `Bid: $${piece.currentBid || piece.startingBid}` : `$${piece.price}`}
+            {piece.listingType === 'auction'
+              ? `Bid: $${piece.currentBid || piece.startingBid}`
+              : `$${piece.price}`}
           </div>
           <button
-            onClick={e => { e.stopPropagation(); /* toggle wishlist */ }}
+            onClick={e => e.stopPropagation()}
             style={{ background: 'none', border: 'none', color: 'var(--slate)', cursor: 'pointer', padding: 2 }}
           >
             <Heart size={14} />

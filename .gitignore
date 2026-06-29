@@ -1,0 +1,4 @@
+node_modules
+dist
+.env.local
+indie-art-gallery

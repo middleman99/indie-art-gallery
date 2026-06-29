@@ -1,0 +1,35 @@
+// src/components/ArtCard.jsx
+import { useNavigate } from 'react-router-dom'
+import { Heart } from 'lucide-react'
+
+const ART_EMOJIS = ['🎨', '🖼️', '🎭', '✏️', '🖌️', '🎪', '🌈', '🎬']
+
+export default function ArtCard({ piece }) {
+  const navigate = useNavigate()
+  const emoji = ART_EMOJIS[piece.id?.charCodeAt(0) % ART_EMOJIS.length] || '🎨'
+
+  return (
+    <div className="art-card" onClick={() => navigate(`/piece/${piece.id}`)}>
+      {piece.imageUrl ? (
+        <img src={piece.imageUrl} alt={piece.title} className="art-card-img" />
+      ) : (
+        <div className="art-card-img-placeholder">{emoji}</div>
+      )}
+      <div className="art-card-body">
+        <div className="art-card-title truncate">{piece.title}</div>
+        <div className="art-card-artist truncate">by {piece.artistName}</div>
+        <div className="flex items-center justify-between mt-2">
+          <div className={`art-card-price ${piece.listingType === 'auction' ? 'auction' : ''}`}>
+            {piece.listingType === 'auction' ? `Bid: $${piece.currentBid || piece.startingBid}` : `$${piece.price}`}
+          </div>
+          <button
+            onClick={e => { e.stopPropagation(); /* toggle wishlist */ }}
+            style={{ background: 'none', border: 'none', color: 'var(--slate)', cursor: 'pointer', padding: 2 }}
+          >
+            <Heart size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

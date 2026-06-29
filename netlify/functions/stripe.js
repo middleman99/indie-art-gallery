@@ -2,7 +2,7 @@ const Stripe = require('stripe');
 
 exports.handler = async (event) => {
   const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-  
+
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
@@ -49,24 +49,32 @@ exports.handler = async (event) => {
     // Create payment intent for buyer
     if (action === 'create_payment_intent') {
       const { amount, artistStripeId, platformFeePercent } = data;
-      const platformFee = Math.round(amount * platformFeePercent);
-      const intent = await stripe.paymentIntents.create({
-        amount,
+
+      const intentParams = {
+        amount: Math.round(amount),
         currency: 'usd',
-        application_fee_amount: platformFee,
-        transfer_data: {
+      };
+
+      // Only add transfer if artist has a Stripe account
+      if (artistStripeId) {
+        const platformFee = Math.round(amount * platformFeePercent);
+        intentParams.application_fee_amount = platformFee;
+        intentParams.transfer_data = {
           destination: artistStripeId,
-        },
-      });
+        };
+      }
+
+      const intent = await stripe.paymentIntents.create(intentParams);
+
       return {
         statusCode: 200,
         body: JSON.stringify({ clientSecret: intent.client_secret }),
       };
     }
 
-    return { 
-      statusCode: 400, 
-      body: JSON.stringify({ error: 'Unknown action' }) 
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: 'Unknown action' }),
     };
 
   } catch (err) {

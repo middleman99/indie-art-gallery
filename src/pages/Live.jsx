@@ -47,7 +47,9 @@ export default function Live() {
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{LIVE_SHOWS.length} live</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-3)' }}>
-              {LIVE_SHOWS.map(s => <LiveCard key={s.id} show={s} />)}
+              {LIVE_SHOWS.map(s => (
+                <LiveCard key={s.id} show={s} onClick={() => navigate(`/show/${s.id}`)} />
+              ))}
             </div>
           </section>
         ) : (

@@ -1,5 +1,5 @@
 // src/App.jsx
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { useNavigate, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
 import Discover from './pages/Discover'
@@ -12,6 +12,8 @@ import Admin from './pages/Admin'
 import ConnectStripe from './pages/ConnectStripe'
 import PieceDetail from './pages/PieceDetail'
 import Checkout from './pages/Checkout'
+import GoLive from './pages/GoLive'
+import ShowRoom from './pages/ShowRoom'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -46,10 +48,12 @@ function OrderComplete() {
   )
 }
 
-import { useNavigate } from 'react-router-dom'
+const noNavPaths = ['/auth', '/checkout', '/order-complete']
 
 export default function App() {
   const { user } = useAuth()
+  const hideNav = noNavPaths.some(p => window.location.pathname.startsWith(p))
+    || window.location.pathname.startsWith('/show/')
 
   return (
     <>
@@ -65,10 +69,12 @@ export default function App() {
         <Route path="/piece/:id"       element={<PieceDetail />} />
         <Route path="/checkout"        element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/order-complete"  element={<OrderComplete />} />
+        <Route path="/go-live"         element={<ArtistRoute><GoLive /></ArtistRoute>} />
+        <Route path="/show/:id"        element={<ShowRoom />} />
         <Route path="*"                element={<Navigate to="/" replace />} />
       </Routes>
 
-      {!['/auth', '/checkout', '/order-complete'].includes(window.location.pathname) && <BottomNav />}
+      {!hideNav && <BottomNav />}
     </>
   )
 }

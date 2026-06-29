@@ -10,6 +10,7 @@ import Auth from './pages/Auth'
 import ListArt from './pages/ListArt'
 import Admin from './pages/Admin'
 import ConnectStripe from './pages/ConnectStripe'
+import PieceDetail from './pages/PieceDetail'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -32,15 +33,16 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/"              element={<Discover />} />
-        <Route path="/live"          element={<Live />} />
-        <Route path="/store"         element={<Store />} />
-        <Route path="/auth"          element={user ? <Navigate to="/" replace /> : <Auth />} />
-        <Route path="/profile"       element={<Profile />} />
-        <Route path="/list"          element={<ArtistRoute><ListArt /></ArtistRoute>} />
-        <Route path="/connect-stripe" element={<ProtectedRoute><ConnectStripe /></ProtectedRoute>} />
-        <Route path="/admin"         element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-        <Route path="*"              element={<Navigate to="/" replace />} />
+        <Route path="/"                element={<Discover />} />
+        <Route path="/live"            element={<Live />} />
+        <Route path="/store"           element={<Store />} />
+        <Route path="/auth"            element={user ? <Navigate to="/" replace /> : <Auth />} />
+        <Route path="/profile"         element={<Profile />} />
+        <Route path="/list"            element={<ArtistRoute><ListArt /></ArtistRoute>} />
+        <Route path="/connect-stripe"  element={<ProtectedRoute><ConnectStripe /></ProtectedRoute>} />
+        <Route path="/admin"           element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+        <Route path="/piece/:id"       element={<PieceDetail />} />
+        <Route path="*"                element={<Navigate to="/" replace />} />
       </Routes>
 
       {!['/auth'].includes(window.location.pathname) && <BottomNav />}

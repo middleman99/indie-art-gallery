@@ -8,13 +8,11 @@ import { useToast } from '../context/ToastContext'
 import {
   LiveKitRoom,
   VideoConference,
-  useRoomContext,
   RoomAudioRenderer,
 } from '@livekit/components-react'
 import '@livekit/components-styles'
 import { Eye, Send, Gavel, Radio, LogOut, Zap } from 'lucide-react'
 
-// Chat component
 function Chat({ showId, user, profile }) {
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
@@ -50,7 +48,7 @@ function Chat({ showId, user, profile }) {
       <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--sp-3)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
         {messages.map(m => (
           <div key={m.id} style={{ fontSize: 'var(--text-xs)', lineHeight: 1.4 }}>
-            <span style={{ fontWeight: 700, color: 'var(--coral)' }}>{m.userName}: </span>
+            <span style={{ fontWeight: 700, color: m.userId === 'system' ? 'var(--gold)' : 'var(--coral)' }}>{m.userName}: </span>
             <span style={{ color: 'var(--cream)' }}>{m.text}</span>
           </div>
         ))}
@@ -74,7 +72,6 @@ function Chat({ showId, user, profile }) {
   )
 }
 
-// Bid panel component
 function BidPanel({ showId, show, user, profile }) {
   const [bidAmount, setBidAmount] = useState('')
   const [placing, setPlacing] = useState(false)
@@ -113,6 +110,11 @@ function BidPanel({ showId, show, user, profile }) {
 
   return (
     <div style={{ padding: 'var(--sp-3)', background: 'rgba(255,215,0,0.06)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,215,0,0.2)', margin: 'var(--sp-3)' }}>
+      {show?.pieceTitle && (
+        <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: 'var(--sp-2)', color: 'var(--cream)' }}>
+          🎨 {show.pieceTitle}
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--sp-2)' }}>
         <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--gold)' }}>
           <Gavel size={12} style={{ display: 'inline', marginRight: 4 }} />
@@ -145,7 +147,6 @@ function BidPanel({ showId, show, user, profile }) {
   )
 }
 
-// Raid modal
 function RaidModal({ showId, onClose, artistName }) {
   const [shows, setShows] = useState([])
   const [raiding, setRaiding] = useState(false)
@@ -222,7 +223,6 @@ function RaidModal({ showId, onClose, artistName }) {
   )
 }
 
-// Main ShowRoom
 export default function ShowRoom() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
@@ -231,15 +231,12 @@ export default function ShowRoom() {
   const toast = useToast()
 
   const isHost = searchParams.get('host') === 'true'
-  const roomName = searchParams.get('room')
 
   const [show, setShow] = useState(null)
   const [token, setToken] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showRaid, setShowRaid] = useState(false)
-  const [tab, setTab] = useState('chat')
 
-  // Load show
   useEffect(() => {
     if (!id) return
     const unsub = onSnapshot(doc(db, 'shows', id), snap => {
@@ -248,7 +245,6 @@ export default function ShowRoom() {
     return unsub
   }, [id])
 
-  // Get LiveKit token
   useEffect(() => {
     if (!show) return
     async function getToken() {
@@ -294,7 +290,6 @@ export default function ShowRoom() {
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--charcoal)' }}>
 
-      {/* Top bar */}
       <div style={{ padding: 'var(--sp-3) var(--sp-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,248,240,0.08)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
           <button onClick={() => navigate('/live')} style={{ background: 'none', border: 'none', color: 'var(--slate)', cursor: 'pointer', fontSize: 'var(--text-sm)' }}>
@@ -315,7 +310,6 @@ export default function ShowRoom() {
         </div>
       </div>
 
-      {/* Video area */}
       <div style={{ flex: '0 0 45%', background: '#000', position: 'relative' }}>
         {token ? (
           <LiveKitRoom
@@ -336,28 +330,18 @@ export default function ShowRoom() {
         )}
       </div>
 
-      {/* Bid panel */}
       {show.allowBidding && <BidPanel showId={id} show={show} user={user} profile={profile} />}
 
-      {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,248,240,0.08)', flexShrink: 0 }}>
-        {['chat'].map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{ flex: 1, padding: 'var(--sp-3)', background: 'none', border: 'none', color: tab === t ? 'var(--coral)' : 'var(--slate)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', borderBottom: tab === t ? '2px solid var(--coral)' : '2px solid transparent' }}
-          >
-            Chat
-          </button>
-        ))}
+        <div style={{ flex: 1, padding: 'var(--sp-3)', color: 'var(--coral)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', borderBottom: '2px solid var(--coral)' }}>
+          Chat
+        </div>
       </div>
 
-      {/* Chat */}
       <div style={{ flex: 1, overflow: 'hidden' }}>
         <Chat showId={id} user={user} profile={profile} />
       </div>
 
-      {/* Host controls */}
       {isHost && (
         <div style={{ padding: 'var(--sp-3)', borderTop: '1px solid rgba(255,248,240,0.08)', display: 'flex', gap: 'var(--sp-3)', flexShrink: 0 }}>
           <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => setShowRaid(true)}>
@@ -369,7 +353,6 @@ export default function ShowRoom() {
         </div>
       )}
 
-      {/* Raid modal */}
       {showRaid && (
         <RaidModal
           showId={id}

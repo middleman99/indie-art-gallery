@@ -1,14 +1,20 @@
 // src/pages/GoLive.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { db } from '../firebase'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'
 import TopBar from '../components/TopBar'
-import { Radio, Video, Users, Gavel } from 'lucide-react'
+import { Radio, Gavel, Package } from 'lucide-react'
 
 const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print', 'Other']
+
+// Demo listings — until real listings are pulled from Firebase
+const DEMO_LISTINGS = [
+  { id: 'p1', title: 'Golden Hour', price: 280, listingType: 'fixed', artType: 'Painting' },
+  { id: 'p2', title: 'Neon Dreams', currentBid: 120, startingBid: 80, listingType: 'auction', artType: 'Digital' },
+]
 
 export default function GoLive() {
   const { user, profile } = useAuth()
@@ -22,16 +28,36 @@ export default function GoLive() {
     allowBidding: true,
   })
   const [starting, setStarting] = useState(false)
+  const [myListings, setMyListings] = useState(DEMO_LISTINGS)
+  const [selectedPiece, setSelectedPiece] = useState(null)
+  const [startingBid, setStartingBid] = useState('')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  useEffect(() => {
+    async function loadListings() {
+      if (!user) return
+      try {
+        const q = query(collection(db, 'listings'), where('artistId', '==', user.uid), where('status', '==', 'active'))
+        const snap = await getDocs(q)
+        const real = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        if (real.length > 0) setMyListings(real)
+      } catch (e) {
+        // fallback to demo
+      }
+    }
+    loadListings()
+  }, [user])
 
   async function startShow() {
     if (!form.title) { toast.error('Give your show a title.'); return }
     if (!form.artType) { toast.error('Select an art type.'); return }
+    if (form.allowBidding && !selectedPiece) { toast.error('Select a piece to auction, or turn off bidding.'); return }
+    if (form.allowBidding && !startingBid) { toast.error('Set a starting bid.'); return }
+
     setStarting(true)
 
     try {
-      // Create show in Firestore
       const roomName = `show_${user.uid}_${Date.now()}`
       const showData = {
         title: form.title,
@@ -43,8 +69,12 @@ export default function GoLive() {
         roomName,
         status: 'live',
         viewerCount: 0,
-        currentBid: null,
+        pieceId: form.allowBidding ? selectedPiece.id : null,
+        pieceTitle: form.allowBidding ? selectedPiece.title : null,
+        startingBid: form.allowBidding ? parseFloat(startingBid) : null,
+        currentBid: form.allowBidding ? parseFloat(startingBid) : null,
         currentBidder: null,
+        currentBidderId: null,
         createdAt: serverTimestamp(),
       }
 
@@ -65,7 +95,6 @@ export default function GoLive() {
 
       <div className="container" style={{ paddingTop: 'var(--sp-6)', maxWidth: 480 }}>
 
-        {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 'var(--sp-8)' }}>
           <div style={{ width: 72, height: 72, borderRadius: 'var(--r-lg)', background: 'rgba(255,77,77,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--sp-4)' }}>
             <Radio size={32} color="var(--coral)" />
@@ -78,7 +107,6 @@ export default function GoLive() {
           </p>
         </div>
 
-        {/* Form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
 
           <div className="input-group">
@@ -118,47 +146,81 @@ export default function GoLive() {
             </div>
           </div>
 
-          {/* Features */}
+          {/* Bidding toggle */}
           <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,248,240,0.08)' }}>
-            <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Show Features</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
-              {[
-                { key: 'allowBidding', label: 'Live Bidding', desc: 'Run live auctions during your show', icon: Gavel },
-              ].map(({ key, label, desc, icon: Icon }) => (
-                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={form[key]}
-                    onChange={e => set(key, e.target.checked)}
-                    style={{ width: 18, height: 18, accentColor: 'var(--coral)', cursor: 'pointer', flexShrink: 0 }}
-                  />
-                  <div>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Icon size={14} color="var(--coral)" /> {label}
-                    </div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{desc}</div>
-                  </div>
-                </label>
-              ))}
-            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={form.allowBidding}
+                onChange={e => set('allowBidding', e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: 'var(--coral)', cursor: 'pointer', flexShrink: 0 }}
+              />
+              <div>
+                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Gavel size={14} color="var(--coral)" /> Live Bidding
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>Auction a piece during your show</div>
+              </div>
+            </label>
           </div>
 
-          {/* Tips */}
-          <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,215,0,0.06)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,215,0,0.15)' }}>
-            <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 'var(--sp-2)' }}>Tips for a great show</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
-              {[
-                'Good lighting makes your art pop',
-                'Have your pieces ready before going live',
-                'Engage with viewers in the chat',
-                'Raid another artist when you end',
-              ].map(tip => (
-                <div key={tip} style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', display: 'flex', gap: 'var(--sp-2)' }}>
-                  <span style={{ color: 'var(--gold)' }}>→</span> {tip}
+          {/* Piece selector */}
+          {form.allowBidding && (
+            <div>
+              <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Select Piece to Auction *</div>
+              {myListings.length === 0 ? (
+                <div style={{ padding: 'var(--sp-6)', textAlign: 'center', color: 'var(--slate)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)' }}>
+                  <Package size={24} style={{ margin: '0 auto var(--sp-3)', opacity: 0.4 }} />
+                  <p style={{ fontSize: 'var(--text-sm)' }}>You don't have any listings yet.</p>
+                  <button className="btn btn-primary btn-sm" style={{ marginTop: 'var(--sp-3)' }} onClick={() => navigate('/list')}>
+                    List a Piece First
+                  </button>
                 </div>
-              ))}
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+                  {myListings.map(p => (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelectedPiece(p)}
+                      style={{
+                        padding: 'var(--sp-3)',
+                        border: `2px solid ${selectedPiece?.id === p.id ? 'var(--coral)' : 'rgba(255,248,240,0.1)'}`,
+                        borderRadius: 'var(--r-md)',
+                        cursor: 'pointer',
+                        background: selectedPiece?.id === p.id ? 'var(--coral-soft)' : 'transparent',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{p.title}</div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>
+                        {p.listingType === 'fixed' ? `$${p.price}` : `Bid: $${p.currentBid || p.startingBid}`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+          )}
+
+          {/* Starting bid */}
+          {form.allowBidding && selectedPiece && (
+            <div className="input-group">
+              <label className="input-label">Starting Bid *</label>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)' }}>$</span>
+                <input
+                  className="input"
+                  type="number"
+                  placeholder="50"
+                  value={startingBid}
+                  onChange={e => setStartingBid(e.target.value)}
+                  style={{ paddingLeft: 28 }}
+                />
+              </div>
+            </div>
+          )}
 
           <button
             className="btn btn-primary btn-lg btn-full"

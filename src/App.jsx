@@ -14,6 +14,7 @@ import PieceDetail from './pages/PieceDetail'
 import Checkout from './pages/Checkout'
 import GoLive from './pages/GoLive'
 import ShowRoom from './pages/ShowRoom'
+import Orders from './pages/Orders'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="/order-complete"  element={<OrderComplete />} />
         <Route path="/go-live"         element={<ArtistRoute><GoLive /></ArtistRoute>} />
         <Route path="/show/:id"        element={<ShowRoom />} />
+        <Route path="/orders"          element={<ProtectedRoute><Orders /></ProtectedRoute>} />
         <Route path="*"                element={<Navigate to="/" replace />} />
       </Routes>
 

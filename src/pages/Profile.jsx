@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
-import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard } from 'lucide-react'
+import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package } from 'lucide-react'
 import ArtCard from '../components/ArtCard'
 
 const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print', 'Installation', 'Other']
@@ -157,9 +157,9 @@ export default function Profile() {
           </div>
         )}
 
-        {/* ARTIST ACTIONS */}
-        {isArtist && (
-          <div style={{ marginBottom: 'var(--sp-6)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
+        {/* QUICK ACTIONS — everyone */}
+        <div style={{ marginBottom: 'var(--sp-6)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
+          {isArtist && (
             <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
               <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => navigate('/list')}>
                 <Plus size={16} /> List Art
@@ -168,12 +168,17 @@ export default function Profile() {
                 <Radio size={16} /> Go Live
               </button>
             </div>
+          )}
+          {isArtist && (
             <button className="btn btn-ghost btn-full" onClick={() => navigate('/connect-stripe')}>
               <CreditCard size={16} />
               {profile?.stripeAccountId ? 'Manage Payouts' : 'Connect Bank Account to Get Paid'}
             </button>
-          </div>
-        )}
+          )}
+          <button className="btn btn-ghost btn-full" onClick={() => navigate('/orders')}>
+            <Package size={16} /> My Orders
+          </button>
+        </div>
 
         {/* MY LISTINGS */}
         {isArtist && (

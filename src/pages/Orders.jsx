@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { db } from '../firebase'
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import TopBar from '../components/TopBar'
 import { Clock, Trophy, Package, AlertCircle } from 'lucide-react'
 
@@ -51,13 +51,21 @@ export default function Orders() {
     if (!user) { setLoading(false); return }
     const q = query(
       collection(db, 'orders'),
-      where('buyerId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('buyerId', '==', user.uid)
     )
     const unsub = onSnapshot(q, snap => {
-      setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      list.sort((a, b) => {
+        const aTime = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0)
+        const bTime = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0)
+        return bTime - aTime
+      })
+      setOrders(list)
       setLoading(false)
-    }, () => setLoading(false))
+    }, (err) => {
+      console.error('Orders query error:', err)
+      setLoading(false)
+    })
     return unsub
   }, [user])
 

@@ -11,7 +11,7 @@ import {
   RoomAudioRenderer,
 } from '@livekit/components-react'
 import '@livekit/components-styles'
-import { Eye, Send, Gavel, Radio, LogOut, Zap } from 'lucide-react'
+import { Eye, Send, Gavel, Radio, LogOut, Zap, Timer, Trophy } from 'lucide-react'
 
 function Chat({ showId, user, profile }) {
   const [messages, setMessages] = useState([])
@@ -72,15 +72,108 @@ function Chat({ showId, user, profile }) {
   )
 }
 
-function BidPanel({ showId, show, user, profile }) {
+// Countdown hook
+function useCountdown(endTime) {
+  const [secondsLeft, setSecondsLeft] = useState(null)
+
+  useEffect(() => {
+    if (!endTime) return
+    function tick() {
+      const end = endTime.toDate ? endTime.toDate() : new Date(endTime)
+      const diff = Math.max(0, Math.floor((end - new Date()) / 1000))
+      setSecondsLeft(diff)
+    }
+    tick()
+    const interval = setInterval(tick, 1000)
+    return () => clearInterval(interval)
+  }, [endTime])
+
+  return secondsLeft
+}
+
+function formatTime(seconds) {
+  if (seconds === null) return '--:--'
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function BidPanel({ showId, show, user, profile, isHost }) {
   const [bidAmount, setBidAmount] = useState('')
   const [placing, setPlacing] = useState(false)
+  const [startingTimer, setStartingTimer] = useState(false)
   const toast = useToast()
 
   const currentBid = show?.currentBid || show?.startingBid || 0
+  const secondsLeft = useCountdown(show?.auctionEndsAt)
+  const auctionActive = show?.auctionEndsAt && secondsLeft > 0
+  const auctionEnded = show?.auctionEndsAt && secondsLeft === 0 && !show?.auctionClosed
+
+  // Auto-close auction when timer hits 0 (host triggers this)
+  useEffect(() => {
+    if (isHost && auctionEnded) {
+      closeAuction()
+    }
+  }, [auctionEnded])
+
+  async function closeAuction() {
+    if (!show.currentBidderId) {
+      toast.info('Auction ended with no bids.')
+      await updateDoc(doc(db, 'shows', showId), { auctionClosed: true })
+      return
+    }
+    try {
+      await updateDoc(doc(db, 'shows', showId), { auctionClosed: true })
+      await addDoc(collection(db, 'shows', showId, 'chat'), {
+        text: `🏆 Auction won by ${show.currentBidder} at $${show.currentBid}! Check your email for payment link.`,
+        userId: 'system',
+        userName: 'System',
+        createdAt: serverTimestamp(),
+      })
+      // Create a pending order with 1hr payment window
+      await addDoc(collection(db, 'orders'), {
+        showId,
+        pieceId: show.pieceId,
+        pieceTitle: show.pieceTitle,
+        winningBid: show.currentBid,
+        buyerId: show.currentBidderId,
+        buyerName: show.currentBidder,
+        artistId: show.artistId,
+        artistName: show.artistName,
+        status: 'pending_payment',
+        paymentDeadline: new Date(Date.now() + 60 * 60 * 1000),
+        createdAt: serverTimestamp(),
+      })
+      toast.success('Auction closed! Order created.')
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  async function startTimer(minutes) {
+    setStartingTimer(true)
+    try {
+      const endsAt = new Date(Date.now() + minutes * 60 * 1000)
+      await updateDoc(doc(db, 'shows', showId), {
+        auctionEndsAt: endsAt,
+        auctionClosed: false,
+      })
+      await addDoc(collection(db, 'shows', showId, 'chat'), {
+        text: `⏱️ Bidding closes in ${minutes} minutes! Get your bids in.`,
+        userId: 'system',
+        userName: 'System',
+        createdAt: serverTimestamp(),
+      })
+    } catch (err) {
+      toast.error('Could not start timer.')
+    } finally {
+      setStartingTimer(false)
+    }
+  }
 
   async function placeBid() {
     if (!user) { toast.error('Sign in to bid.'); return }
+    if (show?.auctionClosed) { toast.error('Bidding has closed.'); return }
     const amount = parseFloat(bidAmount)
     if (!amount || amount <= currentBid) {
       toast.error(`Bid must be higher than $${currentBid}`)
@@ -108,6 +201,17 @@ function BidPanel({ showId, show, user, profile }) {
     }
   }
 
+  if (show?.auctionClosed) {
+    return (
+      <div style={{ padding: 'var(--sp-4)', background: 'rgba(46,204,113,0.08)', borderRadius: 'var(--r-md)', border: '1px solid rgba(46,204,113,0.2)', margin: 'var(--sp-3)', textAlign: 'center' }}>
+        <Trophy size={24} color="var(--green-ok)" style={{ margin: '0 auto var(--sp-2)' }} />
+        <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
+          {show.currentBidder ? `Won by ${show.currentBidder} — $${show.currentBid}` : 'No bids — auction closed'}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ padding: 'var(--sp-3)', background: 'rgba(255,215,0,0.06)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,215,0,0.2)', margin: 'var(--sp-3)' }}>
       {show?.pieceTitle && (
@@ -115,19 +219,26 @@ function BidPanel({ showId, show, user, profile }) {
           🎨 {show.pieceTitle}
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--sp-2)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-2)' }}>
         <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--gold)' }}>
           <Gavel size={12} style={{ display: 'inline', marginRight: 4 }} />
           Live Auction
         </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--gold)' }}>${currentBid}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
+          {auctionActive && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--text-xs)', fontWeight: 700, color: secondsLeft < 30 ? 'var(--coral)' : 'var(--gold)', fontFamily: 'var(--font-mono)' }}>
+              <Timer size={12} /> {formatTime(secondsLeft)}
+            </span>
+          )}
+          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--gold)' }}>${currentBid}</span>
+        </div>
       </div>
       {show?.currentBidder && (
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', marginBottom: 'var(--sp-2)' }}>
           Leading: {show.currentBidder}
         </div>
       )}
-      <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
+      <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: isHost ? 'var(--sp-3)' : 0 }}>
         <div style={{ position: 'relative', flex: 1 }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>$</span>
           <input
@@ -143,6 +254,17 @@ function BidPanel({ showId, show, user, profile }) {
           {placing ? '...' : 'Bid'}
         </button>
       </div>
+
+      {/* Host timer controls */}
+      {isHost && !auctionActive && !show?.auctionClosed && (
+        <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
+          {[1, 2, 5].map(min => (
+            <button key={min} className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => startTimer(min)} disabled={startingTimer}>
+              Start {min}m Timer
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -330,7 +452,7 @@ export default function ShowRoom() {
         )}
       </div>
 
-      {show.allowBidding && <BidPanel showId={id} show={show} user={user} profile={profile} />}
+      {show.allowBidding && <BidPanel showId={id} show={show} user={user} profile={profile} isHost={isHost} />}
 
       <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,248,240,0.08)', flexShrink: 0 }}>
         <div style={{ flex: 1, padding: 'var(--sp-3)', color: 'var(--coral)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', borderBottom: '2px solid var(--coral)' }}>

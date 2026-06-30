@@ -1,19 +1,10 @@
 // src/pages/Store.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { db } from '../firebase'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import TopBar from '../components/TopBar'
 import ArtCard from '../components/ArtCard'
-
-const ALL_PIECES = [
-  { id: 'b1', title: 'Golden Hour', artistName: 'Maya R.', price: 280, listingType: 'fixed', artType: 'Painting', medium: 'Acrylic on canvas' },
-  { id: 'b2', title: 'Neon Dreams', artistName: 'Dev K.', currentBid: 120, startingBid: 80, listingType: 'auction', artType: 'Digital' },
-  { id: 'b3', title: 'Untitled No. 7', artistName: 'Sara L.', price: 95, listingType: 'fixed', artType: 'Drawing' },
-  { id: 'b4', title: 'City Pulse', artistName: 'James O.', currentBid: 340, startingBid: 200, listingType: 'auction', artType: 'Photography' },
-  { id: 'b5', title: 'Soul Fragment', artistName: 'Nia P.', price: 175, listingType: 'fixed', artType: 'Mixed Media' },
-  { id: 'b6', title: 'Bloom', artistName: 'Chen W.', price: 420, listingType: 'fixed', artType: 'Textile' },
-  { id: 'b7', title: 'Dark Matter', artistName: 'Alex T.', price: 680, listingType: 'fixed', artType: 'Painting' },
-  { id: 'b8', title: 'Frequency', artistName: 'Jo M.', currentBid: 55, startingBid: 40, listingType: 'auction', artType: 'Digital' },
-]
 
 const SORT_OPTIONS = [
   { value: 'new',        label: 'Newest' },
@@ -26,18 +17,37 @@ const ART_TYPES = ['All', 'Painting', 'Drawing', 'Digital', 'Photography', 'Scul
 const LISTING_TYPES = ['All', 'Buy Now', 'Auction']
 
 export default function Store() {
-  const [search, setSearch]       = useState('')
-  const [artType, setArtType]     = useState('All')
-  const [listType, setListType]   = useState('All')
-  const [sort, setSort]           = useState('new')
+  const [search, setSearch] = useState('')
+  const [artType, setArtType] = useState('All')
+  const [listType, setListType] = useState('All')
+  const [sort, setSort] = useState('new')
   const [showFilters, setShowFilters] = useState(false)
+  const [pieces, setPieces] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  const filtered = ALL_PIECES.filter(p => {
-    const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase()) || p.artistName.toLowerCase().includes(search.toLowerCase())
-    const matchArt    = artType === 'All' || p.artType === artType
-    const matchList   = listType === 'All' || (listType === 'Buy Now' ? p.listingType === 'fixed' : p.listingType === 'auction')
+  useEffect(() => {
+    const q = query(collection(db, 'listings'), where('status', '==', 'active'))
+    const unsub = onSnapshot(q, snap => {
+      setPieces(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      setLoading(false)
+    }, () => setLoading(false))
+    return unsub
+  }, [])
+
+  let filtered = pieces.filter(p => {
+    const matchSearch = !search || p.title?.toLowerCase().includes(search.toLowerCase()) || p.artistName?.toLowerCase().includes(search.toLowerCase())
+    const matchArt = artType === 'All' || p.artType === artType
+    const matchList = listType === 'All' || (listType === 'Buy Now' ? p.listingType === 'fixed' : p.listingType === 'auction')
     return matchSearch && matchArt && matchList
   })
+
+  if (sort === 'price-asc') {
+    filtered = [...filtered].sort((a, b) => (a.price || a.currentBid || a.startingBid || 0) - (b.price || b.currentBid || b.startingBid || 0))
+  } else if (sort === 'price-desc') {
+    filtered = [...filtered].sort((a, b) => (b.price || b.currentBid || b.startingBid || 0) - (a.price || a.currentBid || a.startingBid || 0))
+  } else if (sort === 'bids') {
+    filtered = [...filtered].sort((a, b) => (b.bidCount || 0) - (a.bidCount || 0))
+  }
 
   return (
     <div className="page">
@@ -48,7 +58,6 @@ export default function Store() {
           Browse Art
         </h1>
 
-        {/* Search bar */}
         <div style={{ position: 'relative', marginBottom: 'var(--sp-3)' }}>
           <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)' }} />
           <input
@@ -61,7 +70,6 @@ export default function Store() {
           />
         </div>
 
-        {/* Filter toggle + sort */}
         <div className="flex items-center justify-between mb-4">
           <button
             className={`chip ${showFilters ? 'selected' : ''}`}
@@ -86,7 +94,6 @@ export default function Store() {
           </select>
         </div>
 
-        {/* Filters panel */}
         {showFilters && (
           <div style={{ marginBottom: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,248,240,0.08)' }}>
             <div style={{ marginBottom: 'var(--sp-3)' }}>
@@ -116,12 +123,15 @@ export default function Store() {
           </div>
         )}
 
-        {/* Results */}
         <div style={{ marginBottom: 'var(--sp-3)', fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>
-          {filtered.length} {filtered.length === 1 ? 'piece' : 'pieces'} found
+          {loading ? 'Loading...' : `${filtered.length} ${filtered.length === 1 ? 'piece' : 'pieces'} found`}
         </div>
 
-        {filtered.length > 0 ? (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 'var(--sp-10) 0', color: 'var(--slate)' }}>
+            Loading art...
+          </div>
+        ) : filtered.length > 0 ? (
           <div className="art-grid">
             {filtered.map(p => <ArtCard key={p.id} piece={p} />)}
           </div>

@@ -1,6 +1,6 @@
 // src/pages/Discover.jsx
 import { useState, useEffect } from 'react'
-import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore'
+import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore'
 import { db } from '../firebase'
 import TopBar from '../components/TopBar'
 import ArtCard from '../components/ArtCard'
@@ -9,27 +9,30 @@ import { Flame, Sparkles, Clock } from 'lucide-react'
 
 const ART_TYPES = ['All', 'Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print']
 
-// Demo data until Firebase is seeded
-const DEMO_PIECES = [
-  { id: 'a1', title: 'Golden Hour', artistName: 'Maya R.', price: 280, listingType: 'fixed', artType: 'Painting' },
-  { id: 'a2', title: 'Neon Dreams', artistName: 'Dev K.', currentBid: 120, startingBid: 80, listingType: 'auction', artType: 'Digital' },
-  { id: 'a3', title: 'Untitled No. 7', artistName: 'Sara L.', price: 95, listingType: 'fixed', artType: 'Drawing' },
-  { id: 'a4', title: 'City Pulse', artistName: 'James O.', currentBid: 340, startingBid: 200, listingType: 'auction', artType: 'Photography' },
-  { id: 'a5', title: 'Soul Fragment', artistName: 'Nia P.', price: 175, listingType: 'fixed', artType: 'Mixed Media' },
-  { id: 'a6', title: 'Bloom', artistName: 'Chen W.', price: 420, listingType: 'fixed', artType: 'Textile' },
-]
-
-const DEMO_SHOWS = [
-  { id: 's1', artistName: 'Maya R.', title: 'Painting Live Drop', viewerCount: 84 },
-  { id: 's2', artistName: 'Dev K.', title: 'Digital Art Auction', viewerCount: 217 },
-  { id: 's3', artistName: 'Nia P.', title: 'Mixed Media Session', viewerCount: 41 },
-]
-
 export default function Discover() {
   const [activeTab, setActiveTab] = useState('All')
-  const [pieces, setPieces]       = useState(DEMO_PIECES)
-  const [shows, setShows]         = useState(DEMO_SHOWS)
-  const [feed, setFeed]           = useState('trending')
+  const [pieces, setPieces] = useState([])
+  const [shows, setShows] = useState([])
+  const [feed, setFeed] = useState('trending')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const q = query(collection(db, 'listings'), where('status', '==', 'active'))
+    const unsub = onSnapshot(q, snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      setPieces(list)
+      setLoading(false)
+    }, () => setLoading(false))
+    return unsub
+  }, [])
+
+  useEffect(() => {
+    const q = query(collection(db, 'shows'), where('status', '==', 'live'))
+    const unsub = onSnapshot(q, snap => {
+      setShows(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    })
+    return unsub
+  }, [])
 
   const filtered = activeTab === 'All' ? pieces : pieces.filter(p => p.artType === activeTab)
 
@@ -44,7 +47,6 @@ export default function Discover() {
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Decorative coral blob */}
         <div style={{
           position: 'absolute', top: -60, right: -60,
           width: 200, height: 200,
@@ -121,11 +123,15 @@ export default function Discover() {
         </div>
 
         {/* Art Grid */}
-        <div className="art-grid">
-          {filtered.map(p => <ArtCard key={p.id} piece={p} />)}
-        </div>
-
-        {filtered.length === 0 && (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 'var(--sp-10) 0', color: 'var(--slate)' }}>
+            Loading art...
+          </div>
+        ) : filtered.length > 0 ? (
+          <div className="art-grid">
+            {filtered.map(p => <ArtCard key={p.id} piece={p} />)}
+          </div>
+        ) : (
           <div className="text-center" style={{ padding: 'var(--sp-16) 0', color: 'var(--slate)' }}>
             <div style={{ fontSize: '2.5rem', marginBottom: 'var(--sp-4)' }}>🎨</div>
             <p>No {activeTab} pieces yet.</p>

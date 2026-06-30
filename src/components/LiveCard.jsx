@@ -8,8 +8,8 @@ export default function LiveCard({ show }) {
   return (
     <div
       className="live-card"
-      onClick={() => navigate(`/live/${show.id}`)}
-      style={{ minWidth: 160 }}
+      onClick={() => navigate(`/show/${show.id}`)}
+      style={{ minWidth: 160, cursor: 'pointer' }}
     >
       {show.thumbnailUrl && (
         <img src={show.thumbnailUrl} alt={show.artistName} className="live-card-thumb" />

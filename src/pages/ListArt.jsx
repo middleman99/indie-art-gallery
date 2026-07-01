@@ -4,12 +4,29 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, storage } from '../firebase'
+import { db } from '../firebase'
 import TopBar from '../components/TopBar'
-import { Upload, Image, DollarSign, Gavel, Package, Monitor } from 'lucide-react'
+import { Upload, DollarSign, Gavel, Package, Monitor } from 'lucide-react'
 
 const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print', 'Installation', 'Other']
+
+const CLOUDINARY_CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+const CLOUDINARY_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+
+async function uploadToCloudinary(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', CLOUDINARY_PRESET)
+  formData.append('folder', 'indie-art-gallery')
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  })
+  const data = await res.json()
+  if (data.error) throw new Error(data.error.message)
+  return data.secure_url
+}
 
 export default function ListArt() {
   const { user, profile } = useAuth()
@@ -24,11 +41,11 @@ export default function ListArt() {
     medium: '',
     dimensions: '',
     year: new Date().getFullYear().toString(),
-    listingType: 'fixed', // 'fixed' | 'auction'
+    listingType: 'fixed',
     price: '',
     startingBid: '',
-    auctionDuration: '24', // hours
-    deliveryType: 'physical', // 'physical' | 'digital'
+    auctionDuration: '24',
+    deliveryType: 'physical',
     allowOffers: false,
     isOriginal: false,
   })
@@ -36,6 +53,7 @@ export default function ListArt() {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -56,9 +74,9 @@ export default function ListArt() {
     try {
       let imageUrl = ''
       if (imageFile) {
-        const imgRef = ref(storage, `art/${user.uid}/${Date.now()}_${imageFile.name}`)
-        const snap = await uploadBytes(imgRef, imageFile)
-        imageUrl = await getDownloadURL(snap.ref)
+        setUploadProgress('Uploading image...')
+        imageUrl = await uploadToCloudinary(imageFile)
+        setUploadProgress('')
       }
 
       const listingData = {
@@ -84,7 +102,10 @@ export default function ListArt() {
     } catch (err) {
       toast.error('Could not publish. Try again.')
       console.error(err)
-    } finally { setSaving(false) }
+    } finally {
+      setSaving(false)
+      setUploadProgress('')
+    }
   }
 
   return (
@@ -129,7 +150,7 @@ export default function ListArt() {
           {/* Description */}
           <div className="input-group">
             <label className="input-label">Description</label>
-            <textarea className="input" placeholder="Tell buyers about this piece — what inspired it, your process, materials…" value={form.description} onChange={e => set('description', e.target.value)} />
+            <textarea className="input" placeholder="Tell buyers about this piece..." value={form.description} onChange={e => set('description', e.target.value)} />
           </div>
 
           {/* Art type */}
@@ -142,11 +163,11 @@ export default function ListArt() {
             </div>
           </div>
 
-          {/* Medium + dimensions */}
+          {/* Medium + Year */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
             <div className="input-group">
               <label className="input-label">Medium</label>
-              <input className="input" placeholder="Oil on canvas…" value={form.medium} onChange={e => set('medium', e.target.value)} />
+              <input className="input" placeholder="Oil on canvas..." value={form.medium} onChange={e => set('medium', e.target.value)} />
             </div>
             <div className="input-group">
               <label className="input-label">Year</label>
@@ -157,7 +178,7 @@ export default function ListArt() {
           {/* Dimensions */}
           <div className="input-group">
             <label className="input-label">Dimensions (optional)</label>
-            <input className="input" placeholder='e.g. 24" × 36" or 8.5" × 11"' value={form.dimensions} onChange={e => set('dimensions', e.target.value)} />
+            <input className="input" placeholder='e.g. 24" x 36"' value={form.dimensions} onChange={e => set('dimensions', e.target.value)} />
           </div>
 
           <div className="divider" />
@@ -168,7 +189,7 @@ export default function ListArt() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
               {[
                 { value: 'physical', label: 'Physical', desc: 'Buyer pays shipping', icon: Package },
-                { value: 'digital',  label: 'Digital',  desc: 'File unlocks on payment', icon: Monitor },
+                { value: 'digital', label: 'Digital', desc: 'File unlocks on payment', icon: Monitor },
               ].map(({ value, label, desc, icon: Icon }) => (
                 <div key={value} onClick={() => set('deliveryType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.deliveryType === value ? 'var(--coral)' : 'rgba(255,248,240,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.deliveryType === value ? 'var(--coral-soft)' : 'transparent', transition: 'all var(--t-fast)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <Icon size={18} color={form.deliveryType === value ? 'var(--coral)' : 'var(--slate)'} />
@@ -186,8 +207,8 @@ export default function ListArt() {
             <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Listing Type *</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
               {[
-                { value: 'fixed',   label: 'Fixed Price', desc: 'Set your price', icon: DollarSign },
-                { value: 'auction', label: 'Auction',     desc: 'Let buyers bid',  icon: Gavel },
+                { value: 'fixed', label: 'Fixed Price', desc: 'Set your price', icon: DollarSign },
+                { value: 'auction', label: 'Auction', desc: 'Let buyers bid', icon: Gavel },
               ].map(({ value, label, desc, icon: Icon }) => (
                 <div key={value} onClick={() => set('listingType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.listingType === value ? 'var(--coral)' : 'rgba(255,248,240,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.listingType === value ? 'var(--coral-soft)' : 'transparent', transition: 'all var(--t-fast)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <Icon size={18} color={form.listingType === value ? 'var(--coral)' : 'var(--slate)'} />
@@ -245,9 +266,9 @@ export default function ListArt() {
             <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 'var(--sp-2)' }}>Platform Fee</div>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--cream)', lineHeight: 1.6 }}>
               {form.price && parseFloat(form.price) >= 500 ? '4% on sales $500+' :
-               form.price && parseFloat(form.price) >= 100 ? '6% on sales $100–$499' :
+               form.price && parseFloat(form.price) >= 100 ? '6% on sales $100-$499' :
                '8% on sales under $100'}
-              {' '}— deducted from your payout after delivery is confirmed.
+              {' '} deducted from your payout after delivery is confirmed.
             </div>
           </div>
 
@@ -259,7 +280,7 @@ export default function ListArt() {
           </label>
 
           <button className="btn btn-primary btn-lg btn-full" type="submit" disabled={saving}>
-            {saving ? 'Publishing…' : 'Publish Listing'}
+            {saving ? (uploadProgress || 'Publishing...') : 'Publish Listing'}
           </button>
         </form>
       </div>

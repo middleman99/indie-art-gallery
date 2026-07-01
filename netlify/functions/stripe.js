@@ -17,7 +17,6 @@ exports.handler = async (event) => {
   const { action, data } = body;
 
   try {
-    // Create Stripe Connect account for artist
     if (action === 'create_account') {
       const account = await stripe.accounts.create({
         type: 'express',
@@ -32,12 +31,11 @@ exports.handler = async (event) => {
       };
     }
 
-    // Create onboarding link for artist
     if (action === 'create_account_link') {
       const accountLink = await stripe.accountLinks.create({
         account: data.accountId,
-        refresh_url: `${data.returnUrl}/connect-stripe`,
-        return_url: `${data.returnUrl}/profile?stripe=success`,
+        refresh_url: `https://indieartgallery.live/connect-stripe`,
+        return_url: `https://indieartgallery.live/profile?stripe=success`,
         type: 'account_onboarding',
       });
       return {
@@ -46,7 +44,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // Create payment intent for buyer
     if (action === 'create_payment_intent') {
       const { amount, artistStripeId, platformFeePercent } = data;
 
@@ -55,7 +52,6 @@ exports.handler = async (event) => {
         currency: 'usd',
       };
 
-      // Only add transfer if artist has a Stripe account
       if (artistStripeId) {
         const platformFee = Math.round(amount * platformFeePercent);
         intentParams.application_fee_amount = platformFee;

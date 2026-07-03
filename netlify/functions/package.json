@@ -1,4 +1,8 @@
 {
   "name": "indie-art-gallery-functions",
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "livekit-server-sdk": "^2.0.0"
+  }
 }

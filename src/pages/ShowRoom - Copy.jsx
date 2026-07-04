@@ -1,3 +1,4 @@
+// src/pages/ShowRoom.jsx
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { doc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
@@ -97,14 +98,6 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-// Fee table from platform pricing: under $500 = 5% buyer premium, $500+ = 3%
-function calcBuyerPremium(bid) {
-  const rate = bid >= 500 ? 0.03 : 0.05
-  const buyerPremium = Math.round(bid * rate * 100) / 100
-  const total = Math.round((bid + buyerPremium) * 100) / 100
-  return { buyerPremium, total }
-}
-
 function BidPanel({ showId, show, user, profile, isHost }) {
   const [bidAmount, setBidAmount] = useState('')
   const [placing, setPlacing] = useState(false)
@@ -152,35 +145,6 @@ function BidPanel({ showId, show, user, profile, isHost }) {
         createdAt: serverTimestamp(),
       })
       toast.success('Auction closed! Order created.')
-
-      // Send auction_won email to the winning bidder
-      try {
-        const buyerSnap = await getDoc(doc(db, 'users', show.currentBidderId))
-        const buyerEmail = buyerSnap.exists() ? buyerSnap.data().email : null
-        if (buyerEmail) {
-          const { buyerPremium, total } = calcBuyerPremium(show.currentBid)
-          await fetch('/.netlify/functions/email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'auction_won',
-              data: {
-                buyerEmail,
-                pieceTitle: show.pieceTitle,
-                artistName: show.artistName,
-                winningBid: show.currentBid,
-                buyerPremium,
-                total,
-              },
-            }),
-          })
-        } else {
-          console.error('No email on buyer profile, skipped auction_won email for', show.currentBidderId)
-        }
-      } catch (emailErr) {
-        // Don't let email failure block the auction close flow
-        console.error('auction_won email failed:', emailErr)
-      }
     } catch (err) {
       console.error(err)
     }

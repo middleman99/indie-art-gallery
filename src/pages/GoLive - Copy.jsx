@@ -16,32 +16,6 @@ const DEMO_LISTINGS = [
   { id: 'p2', title: 'Neon Dreams', currentBid: 120, startingBid: 80, listingType: 'auction', artType: 'Digital' },
 ]
 
-// Fire-and-forget: email every follower that this artist just went live.
-// Does not block the host's navigation into their own show.
-// Requires users/{artistId}/followers/{followerId} docs with an `email` field.
-async function notifyFollowersGoingLive(artistId, artistName, showTitle) {
-  try {
-    const followersSnap = await getDocs(collection(db, 'users', artistId, 'followers'))
-    const sends = followersSnap.docs
-      .map(d => d.data().email)
-      .filter(Boolean)
-      .map(followerEmail =>
-        fetch('/.netlify/functions/email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'artist_going_live',
-            data: { followerEmail, artistName, showTitle },
-          }),
-        }).catch(err => console.error('artist_going_live email failed for', followerEmail, err))
-      )
-    await Promise.all(sends)
-  } catch (err) {
-    // Followers subcollection may not exist yet, or rules may block it - don't break Go Live over this
-    console.error('Could not load followers for going-live notification:', err)
-  }
-}
-
 export default function GoLive() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
@@ -106,10 +80,6 @@ export default function GoLive() {
 
       const docRef = await addDoc(collection(db, 'shows'), showData)
       toast.success('Show created! Starting your stream...')
-
-      // Notify followers - fire and forget, don't make the artist wait on this
-      notifyFollowersGoingLive(user.uid, profile?.displayName || 'Artist', form.title)
-
       navigate(`/show/${docRef.id}?host=true&room=${roomName}`)
     } catch (err) {
       toast.error('Could not start show. Try again.')

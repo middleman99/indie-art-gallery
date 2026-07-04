@@ -148,13 +148,6 @@ export default function Checkout() {
               amount: Math.round(parseFloat(fees.total) * 100),
               artistStripeId: piece.artistStripeId || null,
               platformFeePercent: parseFloat(fees.platformFee) / price,
-              // Metadata survives Stripe's full-page redirect to /order-complete,
-              // where location.state (React Router) is no longer available.
-              metadata: {
-                pieceTitle: piece.title,
-                buyerEmail: user.email,
-                total: fees.total,
-              },
             },
           }),
         })

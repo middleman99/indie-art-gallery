@@ -1,13 +1,10 @@
 // src/components/ArtCard.jsx
 import { useNavigate } from 'react-router-dom'
 import { Heart } from 'lucide-react'
-
 const ART_EMOJIS = ['🎨', '🖼️', '🎭', '✏️', '🖌️', '🎪', '🌈', '🎬']
-
 export default function ArtCard({ piece }) {
   const navigate = useNavigate()
   const emoji = ART_EMOJIS[piece.id?.charCodeAt(0) % ART_EMOJIS.length] || '🎨'
-
   return (
     <div
       className="art-card"
@@ -21,7 +18,19 @@ export default function ArtCard({ piece }) {
       )}
       <div className="art-card-body">
         <div className="art-card-title truncate">{piece.title}</div>
-        <div className="art-card-artist truncate">by {piece.artistName}</div>
+        {piece.artistId ? (
+          <div
+            className="art-card-artist truncate"
+            onClick={e => { e.stopPropagation(); navigate(`/artist/${piece.artistId}`) }}
+            style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'transparent' }}
+            onMouseEnter={e => e.currentTarget.style.textDecorationColor = 'currentColor'}
+            onMouseLeave={e => e.currentTarget.style.textDecorationColor = 'transparent'}
+          >
+            by {piece.artistName}
+          </div>
+        ) : (
+          <div className="art-card-artist truncate">by {piece.artistName}</div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--sp-2)' }}>
           <div className={`art-card-price ${piece.listingType === 'auction' ? 'auction' : ''}`}>
             {piece.listingType === 'auction'

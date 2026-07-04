@@ -427,7 +427,7 @@ export default function ShowRoom() {
       }
     }
     getToken()
-  }, [show])
+  }, [show?.roomName])
 
   async function endShow() {
     try {
@@ -455,7 +455,18 @@ export default function ShowRoom() {
           </button>
           <div>
             <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{show.title}</div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>by {show.artistName}</div>
+            {show.artistId ? (
+              <div
+                style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'transparent', display: 'inline-block' }}
+                onClick={() => navigate(`/artist/${show.artistId}`)}
+                onMouseEnter={e => e.currentTarget.style.textDecorationColor = 'currentColor'}
+                onMouseLeave={e => e.currentTarget.style.textDecorationColor = 'transparent'}
+              >
+                by {show.artistName}
+              </div>
+            ) : (
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>by {show.artistName}</div>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>

@@ -1,5 +1,5 @@
 // src/pages/Profile.jsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -9,6 +9,26 @@ import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCi
 import ArtCard from '../components/ArtCard'
 
 const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print', 'Installation', 'Other']
+
+const CLOUDINARY_CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+const CLOUDINARY_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+
+// Same upload pattern as ListArt.jsx - duplicated locally rather than shared,
+// to avoid touching the already-working listing upload flow for a small helper.
+async function uploadToCloudinary(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', CLOUDINARY_PRESET)
+  formData.append('folder', 'indie-art-gallery')
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  })
+  const data = await res.json()
+  if (data.error) throw new Error(data.error.message)
+  return data.secure_url
+}
 
 const DEMO_PIECES = [
   { id: 'p1', title: 'Golden Hour', artistName: 'You', price: 280, listingType: 'fixed' },
@@ -140,11 +160,13 @@ function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
 }
 
 export default function Profile() {
-  const { user, profile, isArtist, logout } = useAuth()
+  const { user, profile, isArtist, logout, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarFileRef = useRef()
   const [editForm, setEditForm] = useState({
     bio: profile?.bio || '',
     instagram: profile?.instagram || '',
@@ -182,6 +204,26 @@ export default function Profile() {
     }
   }
 
+  async function handleAvatarPick(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) { toast.error('Image must be under 10MB.'); return }
+
+    setUploadingAvatar(true)
+    try {
+      const avatarUrl = await uploadToCloudinary(file)
+      await updateDoc(doc(db, 'users', user.uid), { avatarUrl })
+      await refreshProfile()
+      toast.success('Profile photo updated.')
+    } catch (err) {
+      console.error(err)
+      toast.error('Could not upload photo. Try again.')
+    } finally {
+      setUploadingAvatar(false)
+      e.target.value = '' // allow picking the same file again if needed
+    }
+  }
+
   function toggleArtType(t) {
     setEditForm(f => ({
       ...f,
@@ -196,12 +238,20 @@ export default function Profile() {
         {/* AVATAR + ACTIONS ROW */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-4)' }}>
           <div style={{ position: 'relative', display: 'inline-block' }}>
-            <div className="avatar avatar-lg" style={{ border: '3px solid var(--charcoal2)', fontSize: 'var(--text-xl)' }}>
-              {initials}
+            <div className="avatar avatar-lg" style={{ border: '3px solid var(--charcoal2)', fontSize: 'var(--text-xl)', overflow: 'hidden' }}>
+              {profile?.avatarUrl
+                ? <img src={profile.avatarUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : initials}
             </div>
-            <button style={{ position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: 'var(--coral)', border: '2px solid var(--charcoal)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <button
+              type="button"
+              onClick={() => avatarFileRef.current?.click()}
+              disabled={uploadingAvatar}
+              style={{ position: 'absolute', bottom: 0, right: 0, width: 24, height: 24, borderRadius: '50%', background: 'var(--coral)', border: '2px solid var(--charcoal)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: uploadingAvatar ? 'default' : 'pointer', opacity: uploadingAvatar ? 0.6 : 1 }}
+            >
               <Camera size={11} color="#fff" />
             </button>
+            <input ref={avatarFileRef} type="file" accept="image/*" onChange={handleAvatarPick} style={{ display: 'none' }} />
           </div>
           <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
             <button className="btn btn-ghost btn-sm" onClick={() => setEditing(e => !e)}>

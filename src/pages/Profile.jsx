@@ -1,11 +1,11 @@
 // src/pages/Profile.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../firebase'
-import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package } from 'lucide-react'
+import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight } from 'lucide-react'
 import ArtCard from '../components/ArtCard'
 
 const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print', 'Installation', 'Other']
@@ -14,6 +14,130 @@ const DEMO_PIECES = [
   { id: 'p1', title: 'Golden Hour', artistName: 'You', price: 280, listingType: 'fixed' },
   { id: 'p2', title: 'Neon Dreams', artistName: 'You', currentBid: 120, startingBid: 80, listingType: 'auction' },
 ]
+
+// Guided setup checklist for new artists. Runs its own live Firestore query
+// for listings, rather than trusting the (currently hardcoded/demo) listings
+// section further down this page.
+function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
+  const [hasListing, setHasListing] = useState(null) // null = still checking
+
+  useEffect(() => {
+    if (!user?.uid) return
+    let cancelled = false
+    async function checkListings() {
+      try {
+        const q = query(
+          collection(db, 'listings'),
+          where('artistId', '==', user.uid),
+          where('status', '==', 'active')
+        )
+        const snap = await getDocs(q)
+        if (!cancelled) setHasListing(snap.docs.length > 0)
+      } catch (e) {
+        console.error('Could not check listings for onboarding checklist:', e)
+        if (!cancelled) setHasListing(false)
+      }
+    }
+    checkListings()
+    return () => { cancelled = true }
+  }, [user?.uid])
+
+  // Avoid a flash of "incomplete" before we know the real listing status
+  if (hasListing === null) return null
+
+  const steps = [
+    {
+      key: 'profile',
+      label: 'Complete your profile',
+      sublabel: 'Add a bio and pick your art types',
+      done: !!(profile?.bio?.trim() && profile?.artTypes?.length > 0),
+      action: onEditProfile,
+    },
+    {
+      key: 'stripe',
+      label: 'Connect your bank account',
+      sublabel: 'Required to receive payouts',
+      done: !!profile?.stripeAccountId,
+      action: () => navigate('/connect-stripe'),
+    },
+    {
+      key: 'listing',
+      label: 'List your first piece',
+      sublabel: 'Get it in front of buyers',
+      done: hasListing,
+      action: () => navigate('/list'),
+    },
+  ]
+
+  const doneCount = steps.filter(s => s.done).length
+  if (doneCount === steps.length) return null // fully set up, don't clutter the page
+
+  return (
+    <div style={{
+      marginBottom: 'var(--sp-6)',
+      padding: 'var(--sp-5)',
+      background: 'rgba(255,215,0,0.06)',
+      borderRadius: 'var(--r-lg)',
+      border: '1px solid rgba(255,215,0,0.2)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-3)' }}>
+        <h4 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)' }}>Get set up</h4>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--gold)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+          {doneCount}/{steps.length}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 999, marginBottom: 'var(--sp-4)', overflow: 'hidden' }}>
+        <div style={{
+          height: '100%',
+          width: `${(doneCount / steps.length) * 100}%`,
+          background: 'var(--gold)',
+          borderRadius: 999,
+          transition: 'width 0.3s ease',
+        }} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-1)' }}>
+        {steps.map(step => (
+          <button
+            key={step.key}
+            onClick={step.done ? undefined : step.action}
+            disabled={step.done}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--sp-3)',
+              padding: 'var(--sp-3)',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: 'var(--r-md)',
+              cursor: step.done ? 'default' : 'pointer',
+              textAlign: 'left',
+              width: '100%',
+              opacity: step.done ? 0.6 : 1,
+            }}
+          >
+            {step.done
+              ? <CheckCircle2 size={20} color="var(--green-ok)" style={{ flexShrink: 0 }} />
+              : <Circle size={20} color="var(--slate)" style={{ flexShrink: 0 }} />}
+            <div style={{ flex: 1 }}>
+              <div style={{
+                fontSize: 'var(--text-sm)',
+                fontWeight: 600,
+                textDecoration: step.done ? 'line-through' : 'none',
+              }}>
+                {step.label}
+              </div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{step.sublabel}</div>
+            </div>
+            {!step.done && <ChevronRight size={16} color="var(--slate)" style={{ flexShrink: 0 }} />}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function Profile() {
   const { user, profile, isArtist, logout } = useAuth()
@@ -115,6 +239,16 @@ export default function Profile() {
             </div>
           ))}
         </div>
+
+        {/* ONBOARDING CHECKLIST - only for artists, hides itself once complete */}
+        {isArtist && (
+          <OnboardingChecklist
+            profile={profile}
+            user={user}
+            navigate={navigate}
+            onEditProfile={() => setEditing(true)}
+          />
+        )}
 
         {/* EDIT FORM */}
         {editing && (

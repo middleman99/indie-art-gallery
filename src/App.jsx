@@ -2,9 +2,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Routes, Route, Navigate } from 'react-router-dom'
 import { loadStripe } from '@stripe/stripe-js'
+import { doc, updateDoc } from 'firebase/firestore'
+import { db } from './firebase'
 import { useAuth } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
 import Discover from './pages/Discover'
+import LandingPage from './pages/LandingPage'
 import Live from './pages/Live'
 import Store from './pages/Store'
 import Profile from './pages/Profile'
@@ -63,10 +66,23 @@ function OrderComplete() {
 
         if (paymentIntent.status === 'succeeded') {
           setStatus('succeeded')
+          const meta = paymentIntent.metadata || {}
+
+          // Mark the pending order as paid, if this purchase came from an existing order
+          // (i.e. an auction win paid via Orders.jsx). Buy Now purchases with no
+          // pre-existing order won't have an orderId and this is skipped.
+          if (meta.orderId) {
+            try {
+              await updateDoc(doc(db, 'orders', meta.orderId), { status: 'paid' })
+            } catch (orderErr) {
+              console.error('Could not update order status to paid for orderId', meta.orderId, orderErr)
+            }
+          } else {
+            console.error('No orderId in payment metadata - order status was not updated. This is expected for direct Buy Now purchases with no pre-existing order.')
+          }
 
           // Fire payment_complete email using metadata attached at intent creation
           // (location.state from Checkout.jsx does not survive this redirect)
-          const meta = paymentIntent.metadata || {}
           if (meta.buyerEmail && meta.pieceTitle && meta.total) {
             try {
               await fetch('/.netlify/functions/email', {
@@ -147,12 +163,14 @@ function OrderComplete() {
 const noNavPaths = ['/auth', '/checkout', '/order-complete']
 export default function App() {
   const { user } = useAuth()
-  const hideNav = noNavPaths.some(p => window.location.pathname.startsWith(p))
+  const isLoggedOutLandingPage = !user && window.location.pathname === '/'
+  const hideNav = isLoggedOutLandingPage
+    || noNavPaths.some(p => window.location.pathname.startsWith(p))
     || window.location.pathname.startsWith('/show/')
   return (
     <>
       <Routes>
-        <Route path="/"                element={<Discover />} />
+        <Route path="/"                element={user ? <Discover /> : <LandingPage />} />
         <Route path="/live"            element={<Live />} />
         <Route path="/store"           element={<Store />} />
         <Route path="/auth"            element={user ? <Navigate to="/" replace /> : <Auth />} />

@@ -67,6 +67,29 @@ exports.handler = async (event) => {
         body: JSON.stringify({ clientSecret: intent.client_secret }),
       };
     }
+    if (action === 'get_payment_intent') {
+      // Client-side Stripe.js (publishable key) ALWAYS redacts metadata, even after
+      // a successful payment - confirmed directly in Stripe's own docs. This is the
+      // fix: retrieve it server-side with the secret key, which does return metadata.
+      // Requiring the clientSecret (not just the ID) and verifying it matches mirrors
+      // the same access-control Stripe itself uses for client-side retrieval, so this
+      // can't be used to fetch an arbitrary order's buyer email just by guessing an ID.
+      const { paymentIntentId, clientSecret } = data;
+      if (!paymentIntentId || !clientSecret) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing paymentIntentId or clientSecret' }) };
+      }
+      const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (intent.client_secret !== clientSecret) {
+        return { statusCode: 403, body: JSON.stringify({ error: 'Client secret does not match this PaymentIntent' }) };
+      }
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          status: intent.status,
+          metadata: intent.metadata || {},
+        }),
+      };
+    }
     if (action === 'create_transfer') {
       // Called only when the buyer confirms delivery. Moves the artist's payout
       // portion from the platform's balance to their connected account.

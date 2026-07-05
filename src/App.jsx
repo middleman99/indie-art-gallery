@@ -1,7 +1,6 @@
 // src/App.jsx
 import { useState, useEffect } from 'react'
 import { useNavigate, Routes, Route, Navigate } from 'react-router-dom'
-import { loadStripe } from '@stripe/stripe-js'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from './firebase'
 import { useAuth } from './context/AuthContext'
@@ -22,8 +21,6 @@ import Checkout from './pages/Checkout'
 import GoLive from './pages/GoLive'
 import ShowRoom from './pages/ShowRoom'
 import Orders from './pages/Orders'
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -49,26 +46,40 @@ function OrderComplete() {
     async function verifyAndNotify() {
       const params = new URLSearchParams(window.location.search)
       const clientSecret = params.get('payment_intent_client_secret')
+      const paymentIntentId = params.get('payment_intent')
 
-      if (!clientSecret) {
+      if (!clientSecret || !paymentIntentId) {
         // Page was reached without a Stripe redirect (e.g. direct nav) - nothing to verify
         setStatus('unknown')
         return
       }
 
       try {
-        const stripe = await stripePromise
-        const { paymentIntent, error } = await stripe.retrievePaymentIntent(clientSecret)
+        // NOTE: this deliberately does NOT use stripe.retrievePaymentIntent() (the
+        // client-side, publishable-key call) - Stripe redacts metadata on all
+        // publishable-key requests, confirmed in their own docs. That was a real bug:
+        // orderId/buyerEmail/etc were NEVER actually readable here, for any order,
+        // ever. Fixed by asking the Netlify function to retrieve it server-side
+        // instead, where metadata is actually returned.
+        const res = await fetch('/.netlify/functions/stripe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'get_payment_intent',
+            data: { paymentIntentId, clientSecret },
+          }),
+        })
+        const result = await res.json()
 
-        if (error || !paymentIntent) {
-          console.error('Could not retrieve payment intent:', error)
+        if (!res.ok || result.error) {
+          console.error('Could not retrieve payment intent:', result.error)
           setStatus('failed')
           return
         }
 
-        if (paymentIntent.status === 'succeeded') {
+        if (result.status === 'succeeded') {
           setStatus('succeeded')
-          const meta = paymentIntent.metadata || {}
+          const meta = result.metadata || {}
 
           // Mark the pending order as paid, if this purchase came from an existing order
           // (i.e. an auction win paid via Orders.jsx). Buy Now purchases with no
@@ -80,7 +91,7 @@ function OrderComplete() {
               // transfer against - see Orders.jsx's Confirm Delivery flow.
               await updateDoc(doc(db, 'orders', meta.orderId), {
                 status: 'paid',
-                paymentIntentId: paymentIntent.id,
+                paymentIntentId: paymentIntentId,
               })
             } catch (orderErr) {
               console.error('Could not update order status to paid for orderId', meta.orderId, orderErr)
@@ -114,7 +125,7 @@ function OrderComplete() {
           }
         } else {
           // e.g. requires_payment_method (declined), requires_action, canceled
-          console.error('PaymentIntent did not succeed, status:', paymentIntent.status)
+          console.error('PaymentIntent did not succeed, status:', result.status)
           setStatus('failed')
         }
       } catch (err) {

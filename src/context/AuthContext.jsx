@@ -9,14 +9,11 @@ import {
 } from 'firebase/auth'
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../firebase'
-
 const AuthContext = createContext(null)
-
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -34,13 +31,16 @@ export function AuthProvider({ children }) {
     })
     return unsub
   }, [])
-
   async function signup({ email, password, displayName, role }) {
-    const cred = await createUserWithEmailAndPassword(auth, email, password)
+    // Normalize email casing at the source, so stored profile.email always matches
+    // what Firebase Auth itself normalizes to - prevents case-mismatch bugs anywhere
+    // this field is compared against a hardcoded string (like the admin check below).
+    const normalizedEmail = email.trim().toLowerCase()
+    const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, password)
     await updateProfile(cred.user, { displayName })
     const userData = {
       uid: cred.user.uid,
-      email,
+      email: normalizedEmail,
       displayName,
       role,
       bio: '',
@@ -59,33 +59,30 @@ export function AuthProvider({ children }) {
     setProfile(userData)
     return cred
   }
-
   async function login({ email, password }) {
-    const cred = await signInWithEmailAndPassword(auth, email, password)
+    const cred = await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password)
     const snap = await getDoc(doc(db, 'users', cred.user.uid))
     if (snap.exists()) setProfile(snap.data())
     return cred
   }
-
   async function logout() {
     await signOut(auth)
     setProfile(null)
   }
-
   async function refreshProfile() {
     if (!user) return
     const snap = await getDoc(doc(db, 'users', user.uid))
     if (snap.exists()) setProfile(snap.data())
   }
-
   const isArtist = profile?.role === 'artist' || profile?.role === 'both'
-  const isAdmin  = profile?.email === 'manager@middlemanmerchants.com'
-
+  // Case-insensitive comparison - belt-and-suspenders alongside normalizing at signup,
+  // so this stays correct even for accounts created before this fix, or if the email
+  // field is ever manually edited in Firestore with different casing again.
+  const isAdmin  = profile?.email?.toLowerCase() === 'manager@middlemanmerchants.com'
   return (
     <AuthContext.Provider value={{ user, profile, loading, isArtist, isAdmin, signup, login, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )
 }
-
 export const useAuth = () => useContext(AuthContext)

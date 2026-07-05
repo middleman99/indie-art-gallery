@@ -9,6 +9,7 @@ import BottomNav from './components/BottomNav'
 import Discover from './pages/Discover'
 import LandingPage from './pages/LandingPage'
 import ArtistProfile from './pages/ArtistProfile'
+import Search from './pages/Search'
 import Live from './pages/Live'
 import Store from './pages/Store'
 import Profile from './pages/Profile'
@@ -187,6 +188,7 @@ export default function App() {
         <Route path="/admin"           element={<ProtectedRoute><Admin /></ProtectedRoute>} />
         <Route path="/piece/:id"       element={<PieceDetail />} />
         <Route path="/artist/:id"      element={<ArtistProfile />} />
+        <Route path="/search"          element={<Search />} />
         <Route path="/checkout"        element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/order-complete"  element={<OrderComplete />} />
         <Route path="/go-live"         element={<ArtistRoute><GoLive /></ArtistRoute>} />

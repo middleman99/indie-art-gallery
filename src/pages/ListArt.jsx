@@ -81,6 +81,10 @@ export default function ListArt() {
 
       const listingData = {
         ...form,
+        // Lowercase copy for case-insensitive prefix search on /search - Firestore
+        // has no native full-text "contains" search without a paid third-party
+        // service (e.g. Algolia), so this only matches from the START of the title.
+        titleLower: form.title.trim().toLowerCase(),
         price: form.listingType === 'fixed' ? parseFloat(form.price) : null,
         startingBid: form.listingType === 'auction' ? parseFloat(form.startingBid) : null,
         currentBid: null,

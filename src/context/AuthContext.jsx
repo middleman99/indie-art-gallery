@@ -42,6 +42,8 @@ export function AuthProvider({ children }) {
       uid: cred.user.uid,
       email: normalizedEmail,
       displayName,
+      // Lowercase copy for case-insensitive artist-name prefix search on /search
+      displayNameLower: displayName.trim().toLowerCase(),
       role,
       bio: '',
       avatarUrl: '',

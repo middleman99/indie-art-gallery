@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../firebase'
 import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight } from 'lucide-react'
 import ArtCard from '../components/ArtCard'
@@ -159,6 +159,100 @@ function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
   )
 }
 
+// Artist-facing pending offers - simple accept/decline. Accepting creates a real
+// order (reusing the exact same order shape as auction wins and Buy Now) and
+// auto-declines any other pending offers on the same listing, so the piece can't
+// accidentally end up "sold" to two different buyers.
+function OffersPanel({ user }) {
+  const [offers, setOffers] = useState([])
+  const [respondingId, setRespondingId] = useState(null)
+
+  useEffect(() => {
+    if (!user?.uid) return
+    const q = query(collection(db, 'offers'), where('artistId', '==', user.uid), where('status', '==', 'pending'))
+    const unsub = onSnapshot(q, snap => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      list.sort((a, b) => {
+        const aT = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0)
+        const bT = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0)
+        return bT - aT
+      })
+      setOffers(list)
+    }, err => console.error('Could not load offers:', err))
+    return unsub
+  }, [user?.uid])
+
+  async function respond(offer, accept) {
+    if (respondingId) return
+    setRespondingId(offer.id)
+    try {
+      if (accept) {
+        await addDoc(collection(db, 'orders'), {
+          showId: null,
+          pieceId: offer.listingId,
+          pieceTitle: offer.pieceTitle,
+          winningBid: offer.amount,
+          buyerId: offer.buyerId,
+          buyerName: offer.buyerName,
+          artistId: offer.artistId,
+          artistName: offer.artistName,
+          status: 'pending_payment',
+          paymentDeadline: new Date(Date.now() + 60 * 60 * 1000),
+          createdAt: serverTimestamp(),
+        })
+        await updateDoc(doc(db, 'offers', offer.id), { status: 'accepted' })
+
+        const othersQ = query(
+          collection(db, 'offers'),
+          where('listingId', '==', offer.listingId),
+          where('status', '==', 'pending')
+        )
+        const othersSnap = await getDocs(othersQ)
+        await Promise.all(
+          othersSnap.docs
+            .filter(d => d.id !== offer.id)
+            .map(d => updateDoc(doc(db, 'offers', d.id), { status: 'declined' }))
+        )
+      } else {
+        await updateDoc(doc(db, 'offers', offer.id), { status: 'declined' })
+      }
+    } catch (err) {
+      console.error('Could not respond to offer:', err)
+    } finally {
+      setRespondingId(null)
+    }
+  }
+
+  if (offers.length === 0) return null
+
+  return (
+    <div style={{ marginBottom: 'var(--sp-6)' }}>
+      <div className="section-header">
+        <span className="section-title">Pending Offers</span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
+        {offers.map(offer => (
+          <div key={offer.id} style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,248,240,0.08)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--sp-2)' }}>
+              <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{offer.pieceTitle}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--gold)' }}>${offer.amount}</div>
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', marginBottom: 'var(--sp-3)' }}>from {offer.buyerName}</div>
+            <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
+              <button className="btn btn-primary btn-sm" style={{ flex: 1 }} onClick={() => respond(offer, true)} disabled={respondingId === offer.id}>
+                Accept
+              </button>
+              <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => respond(offer, false)} disabled={respondingId === offer.id}>
+                Decline
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function Profile() {
   const { user, profile, isArtist, logout, refreshProfile } = useAuth()
   const navigate = useNavigate()
@@ -299,6 +393,8 @@ export default function Profile() {
             onEditProfile={() => setEditing(true)}
           />
         )}
+
+        {isArtist && <OffersPanel user={user} />}
 
         {/* EDIT FORM */}
         {editing && (

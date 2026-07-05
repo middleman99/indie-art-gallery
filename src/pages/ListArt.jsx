@@ -84,6 +84,16 @@ export default function ListArt() {
         price: form.listingType === 'fixed' ? parseFloat(form.price) : null,
         startingBid: form.listingType === 'auction' ? parseFloat(form.startingBid) : null,
         currentBid: null,
+        // Auction closing fields - previously auctionDuration was stored as a plain
+        // string with no actual enforcement anywhere. auctionEndsAt is the real
+        // deadline PieceDetail.jsx checks against; currentBidderId/Name/auctionClosed
+        // mirror the pattern already used for live-show auctions in shows/{id}.
+        auctionEndsAt: form.listingType === 'auction'
+          ? new Date(Date.now() + parseInt(form.auctionDuration, 10) * 60 * 60 * 1000)
+          : null,
+        currentBidderId: null,
+        currentBidderName: null,
+        auctionClosed: false,
         imageUrl,
         artistId: user.uid,
         artistName: profile?.displayName || 'Unknown Artist',

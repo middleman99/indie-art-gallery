@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { doc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
 import { db } from '../firebase'
 import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight } from 'lucide-react'
 import ArtCard from '../components/ArtCard'
@@ -261,12 +261,41 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const avatarFileRef = useRef()
+  const [listedCount, setListedCount] = useState(null)
+  const [soldCount, setSoldCount] = useState(null)
   const [editForm, setEditForm] = useState({
     bio: profile?.bio || '',
     instagram: profile?.instagram || '',
     website: profile?.website || '',
     artTypes: profile?.artTypes || [],
   })
+
+  useEffect(() => {
+    if (!user?.uid) return
+    async function loadStats() {
+      try {
+        const listedSnap = await getCountFromServer(
+          query(collection(db, 'listings'), where('artistId', '==', user.uid), where('status', '==', 'active'))
+        )
+        setListedCount(listedSnap.data().count)
+      } catch (e) {
+        console.error('Could not load listed count:', e)
+        setListedCount(0)
+      }
+      try {
+        // "Sold" = orders that have actually been paid for - 'paid' (awaiting delivery)
+        // and 'delivered' (fully complete). Same definition used in the Admin dashboard.
+        const soldSnap = await getCountFromServer(
+          query(collection(db, 'orders'), where('artistId', '==', user.uid), where('status', 'in', ['paid', 'delivered']))
+        )
+        setSoldCount(soldSnap.data().count)
+      } catch (e) {
+        console.error('Could not load sold count:', e)
+        setSoldCount(0)
+      }
+    }
+    loadStats()
+  }, [user?.uid])
 
   if (!user) {
     return (
@@ -376,7 +405,7 @@ export default function Profile() {
 
         {/* STATS */}
         <div style={{ display: 'flex', gap: 'var(--sp-4)', paddingBottom: 'var(--sp-4)', borderBottom: '1px solid rgba(255,248,240,0.08)', marginBottom: 'var(--sp-4)' }}>
-          {[['0', 'Listed'], ['0', 'Sold'], [profile?.followerCount || 0, 'Followers']].map(([val, label]) => (
+          {[[listedCount === null ? '…' : listedCount, 'Listed'], [soldCount === null ? '…' : soldCount, 'Sold'], [profile?.followerCount || 0, 'Followers']].map(([val, label]) => (
             <div key={label} style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--coral)' }}>{val}</div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>

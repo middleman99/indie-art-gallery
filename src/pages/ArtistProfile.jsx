@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { db } from '../firebase'
-import { doc, onSnapshot, getDoc, setDoc, deleteDoc, updateDoc, increment, collection, query, where, getDocs } from 'firebase/firestore'
+import { doc, onSnapshot, getDoc, setDoc, deleteDoc, updateDoc, increment, collection, query, where, getDocs, getCountFromServer } from 'firebase/firestore'
 import TopBar from '../components/TopBar'
 import ArtCard from '../components/ArtCard'
 import LiveCard from '../components/LiveCard'
@@ -20,6 +20,7 @@ export default function ArtistProfile() {
   const [loading, setLoading] = useState(true)
   const [listings, setListings] = useState([])
   const [shows, setShows] = useState([])
+  const [soldCount, setSoldCount] = useState(null)
   const [isFollowing, setIsFollowing] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
   const [followChecked, setFollowChecked] = useState(false)
@@ -69,6 +70,17 @@ export default function ArtistProfile() {
         setShows(list)
       } catch (e) {
         console.error('Could not load artist shows:', e)
+      }
+      try {
+        // "Sold" = real completed sales (paid + delivered orders), not the never-
+        // incremented totalSales field that used to be displayed here.
+        const soldSnap = await getCountFromServer(
+          query(collection(db, 'orders'), where('artistId', '==', id), where('status', 'in', ['paid', 'delivered']))
+        )
+        setSoldCount(soldSnap.data().count)
+      } catch (e) {
+        console.error('Could not load sold count:', e)
+        setSoldCount(0)
       }
     }
     loadContent()
@@ -183,7 +195,7 @@ export default function ArtistProfile() {
 
         {/* STATS */}
         <div style={{ display: 'flex', gap: 'var(--sp-4)', paddingBottom: 'var(--sp-4)', borderBottom: '1px solid rgba(255,248,240,0.08)', marginBottom: 'var(--sp-4)' }}>
-          {[[listings.length, 'Listed'], [artist.totalSales || 0, 'Sold'], [artist.followerCount || 0, 'Followers']].map(([val, label]) => (
+          {[[listings.length, 'Listed'], [soldCount === null ? '…' : soldCount, 'Sold'], [artist.followerCount || 0, 'Followers']].map(([val, label]) => (
             <div key={label} style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--coral)' }}>{val}</div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>

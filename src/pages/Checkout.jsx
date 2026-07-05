@@ -130,6 +130,9 @@ export default function Checkout() {
   const [loading, setLoading] = useState(true)
 
   const piece = state?.piece
+  // Present only when arriving from Orders.jsx (an auction win with a pending order).
+  // Absent for direct Buy Now purchases that never created an order doc first.
+  const orderId = state?.orderId || null
   const price = piece?.listingType === 'fixed' ? piece.price : (piece?.currentBid || piece?.startingBid)
   const fees = piece ? calculateFees(price) : null
 
@@ -139,6 +142,13 @@ export default function Checkout() {
 
     async function createIntent() {
       try {
+        const metadata = {
+          pieceTitle: piece.title,
+          buyerEmail: user.email,
+          total: fees.total,
+        }
+        if (orderId) metadata.orderId = orderId
+
         const res = await fetch('/.netlify/functions/stripe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -146,15 +156,14 @@ export default function Checkout() {
             action: 'create_payment_intent',
             data: {
               amount: Math.round(parseFloat(fees.total) * 100),
-              artistStripeId: piece.artistStripeId || null,
-              platformFeePercent: parseFloat(fees.platformFee) / price,
+              // No artistStripeId/platformFeePercent here anymore - this charges the
+              // platform's own balance only. The artist's payout is transferred
+              // separately later, when the buyer confirms delivery (see Orders.jsx).
+              // transferGroup links the eventual transfer back to this specific charge.
+              transferGroup: orderId || undefined,
               // Metadata survives Stripe's full-page redirect to /order-complete,
               // where location.state (React Router) is no longer available.
-              metadata: {
-                pieceTitle: piece.title,
-                buyerEmail: user.email,
-                total: fees.total,
-              },
+              metadata,
             },
           }),
         })

@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { db } from '../firebase'
-import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import TopBar from '../components/TopBar'
-import { Clock, Trophy, Package, AlertCircle } from 'lucide-react'
+import { Clock, Trophy, Package, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 function calculateFees(price) {
   let artistFee, buyerPremium
@@ -14,10 +15,12 @@ function calculateFees(price) {
   else { artistFee = 0.08; buyerPremium = 0.05 }
   const buyerPremiumAmount = price * buyerPremium
   const total = price + buyerPremiumAmount
+  const artistPayout = price - price * artistFee
   return {
     buyerPremiumAmount: buyerPremiumAmount.toFixed(2),
     total: total.toFixed(2),
     buyerPremiumPercent: (buyerPremium * 100).toFixed(0),
+    artistPayout: artistPayout.toFixed(2),
   }
 }
 
@@ -44,8 +47,10 @@ function TimeRemaining({ deadline }) {
 export default function Orders() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const toast = useToast()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [confirmingId, setConfirmingId] = useState(null) // orderId currently being confirmed, prevents double-click
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -68,6 +73,59 @@ export default function Orders() {
     })
     return unsub
   }, [user])
+
+  async function confirmDelivery(order) {
+    if (confirmingId) return // a confirmation is already in flight, ignore extra clicks
+    if (!order.paymentIntentId) {
+      toast.error('This order is missing payment info and cannot be released yet. Contact support.')
+      return
+    }
+
+    setConfirmingId(order.id)
+    try {
+      // Look up the artist's CURRENT Stripe account fresh, rather than trusting
+      // anything stored at order-creation time (which never even existed for this field).
+      const artistSnap = await getDoc(doc(db, 'users', order.artistId))
+      const artistStripeId = artistSnap.exists() ? artistSnap.data().stripeAccountId : null
+
+      if (!artistStripeId) {
+        toast.error(`${order.artistName} hasn't connected a bank account yet, so payout can't be released. Contact support.`)
+        return
+      }
+
+      const fees = calculateFees(order.winningBid)
+      const payoutAmountCents = Math.round(parseFloat(fees.artistPayout) * 100)
+
+      const res = await fetch('/.netlify/functions/stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_transfer',
+          data: {
+            paymentIntentId: order.paymentIntentId,
+            artistStripeId,
+            amount: payoutAmountCents,
+            orderId: order.id,
+          },
+        }),
+      })
+      const result = await res.json()
+      if (result.error) throw new Error(result.error)
+
+      await updateDoc(doc(db, 'orders', order.id), {
+        status: 'delivered',
+        payoutTransferId: result.transferId,
+        deliveryConfirmedAt: serverTimestamp(),
+      })
+
+      toast.success('Delivery confirmed! Payout released to the artist.')
+    } catch (err) {
+      console.error('Confirm delivery / payout release failed:', err)
+      toast.error('Could not confirm delivery. Try again, or contact support if this keeps happening.')
+    } finally {
+      setConfirmingId(null)
+    }
+  }
 
   if (!user) {
     return (
@@ -97,6 +155,8 @@ export default function Orders() {
             {orders.map(order => {
               const fees = calculateFees(order.winningBid)
               const isPending = order.status === 'pending_payment'
+              const isPaid = order.status === 'paid'
+              const isDelivered = order.status === 'delivered'
               const isExpired = order.paymentDeadline && new Date() > (order.paymentDeadline.toDate ? order.paymentDeadline.toDate() : new Date(order.paymentDeadline))
 
               return (
@@ -113,8 +173,11 @@ export default function Orders() {
                     {isExpired && isPending && (
                       <span className="badge" style={{ background: 'rgba(255,59,59,0.15)', color: 'var(--red-err)' }}>Expired</span>
                     )}
-                    {order.status === 'paid' && (
-                      <span className="badge" style={{ background: 'rgba(46,204,113,0.15)', color: 'var(--green-ok)' }}>Paid</span>
+                    {isPaid && (
+                      <span className="badge" style={{ background: 'rgba(46,204,113,0.15)', color: 'var(--green-ok)' }}>Paid - Awaiting Delivery</span>
+                    )}
+                    {isDelivered && (
+                      <span className="badge" style={{ background: 'rgba(46,204,113,0.15)', color: 'var(--green-ok)' }}>Delivered</span>
                     )}
                   </div>
 
@@ -164,12 +227,31 @@ export default function Orders() {
                             price: order.winningBid,
                             listingType: 'fixed',
                             artistStripeId: null,
-                          }
+                          },
+                          orderId: order.id,
                         }
                       })}
                     >
                       Pay ${fees.total} Now
                     </button>
+                  )}
+
+                  {isPaid && (
+                    <button
+                      className="btn btn-primary btn-full"
+                      onClick={() => confirmDelivery(order)}
+                      disabled={confirmingId === order.id}
+                    >
+                      <CheckCircle2 size={16} />
+                      {confirmingId === order.id ? 'Confirming...' : 'Confirm Delivery Received'}
+                    </button>
+                  )}
+
+                  {isDelivered && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', fontSize: 'var(--text-xs)', color: 'var(--green-ok)' }}>
+                      <CheckCircle2 size={12} />
+                      Delivery confirmed - payout released to {order.artistName}
+                    </div>
                   )}
                 </div>
               )

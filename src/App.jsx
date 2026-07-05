@@ -74,7 +74,13 @@ function OrderComplete() {
           // pre-existing order won't have an orderId and this is skipped.
           if (meta.orderId) {
             try {
-              await updateDoc(doc(db, 'orders', meta.orderId), { status: 'paid' })
+              // paymentIntent.id is stored so a later delivery confirmation can look up
+              // the original charge (via the Netlify function) to fund the artist's payout
+              // transfer against - see Orders.jsx's Confirm Delivery flow.
+              await updateDoc(doc(db, 'orders', meta.orderId), {
+                status: 'paid',
+                paymentIntentId: paymentIntent.id,
+              })
             } catch (orderErr) {
               console.error('Could not update order status to paid for orderId', meta.orderId, orderErr)
             }

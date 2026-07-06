@@ -9,6 +9,8 @@ import Discover from './pages/Discover'
 import LandingPage from './pages/LandingPage'
 import ArtistProfile from './pages/ArtistProfile'
 import Search from './pages/Search'
+import TermsOfService from './pages/TermsOfService'
+import PrivacyPolicy from './pages/PrivacyPolicy'
 import Live from './pages/Live'
 import Store from './pages/Store'
 import Profile from './pages/Profile'
@@ -200,6 +202,8 @@ export default function App() {
         <Route path="/piece/:id"       element={<PieceDetail />} />
         <Route path="/artist/:id"      element={<ArtistProfile />} />
         <Route path="/search"          element={<Search />} />
+        <Route path="/terms"           element={<TermsOfService />} />
+        <Route path="/privacy"         element={<PrivacyPolicy />} />
         <Route path="/checkout"        element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/order-complete"  element={<OrderComplete />} />
         <Route path="/go-live"         element={<ArtistRoute><GoLive /></ArtistRoute>} />

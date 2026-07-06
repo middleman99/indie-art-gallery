@@ -56,6 +56,10 @@ export function AuthProvider({ children }) {
       followerCount: 0,
       totalSales: 0,
       createdAt: serverTimestamp(),
+      // Real audit trail for Terms/Privacy acceptance - not just decorative text.
+      // Age (18+) is enforced by the required checkbox in Auth.jsx; this timestamp
+      // is the record that they actually agreed, and when.
+      termsAcceptedAt: serverTimestamp(),
     }
     await setDoc(doc(db, 'users', cred.user.uid), userData)
     setProfile(userData)

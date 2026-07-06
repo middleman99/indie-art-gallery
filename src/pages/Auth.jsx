@@ -17,6 +17,7 @@ export default function Auth() {
   const [showPw, setShowPw]   = useState(false)
   const [loading, setLoading] = useState(false)
   const [form, setForm]       = useState({ email: '', password: '', displayName: '', role: '' })
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   const { login, signup } = useAuth()
   const toast = useToast()
@@ -38,6 +39,7 @@ export default function Auth() {
   async function handleSignup(e) {
     e.preventDefault()
     if (!form.role) { toast.error('Pick a role to continue.'); return }
+    if (!agreedToTerms) { toast.error('You must confirm you are 18+ and agree to the Terms to continue.'); return }
     setLoading(true)
     try {
       await signup(form)
@@ -179,20 +181,33 @@ export default function Auth() {
               </div>
             ))}
 
+            {/* Real, required consent - replaces decorative text that used to sit
+                below the form and did nothing. Submit is disabled until checked. */}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-3)', cursor: 'pointer', fontSize: 'var(--text-xs)', color: 'var(--slate)', lineHeight: 1.6, marginTop: 'var(--sp-2)' }}>
+              <input
+                type="checkbox"
+                required
+                checked={agreedToTerms}
+                onChange={e => setAgreedToTerms(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: 'var(--coral)', cursor: 'pointer', flexShrink: 0, marginTop: 2 }}
+              />
+              <span>
+                I confirm I am 18 years of age or older, and I agree to the{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--coral)' }}>Terms of Service</a>
+                {' '}and{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--coral)' }}>Privacy Policy</a>.
+                All art I list must be my own original work.
+              </span>
+            </label>
+
             <div className="flex gap-3" style={{ marginTop: 'var(--sp-2)' }}>
               <button type="button" className="btn btn-ghost" onClick={() => setStep(1)} style={{ flex: 1 }}>← Back</button>
-              <button type="submit" className="btn btn-primary" style={{ flex: 2 }} disabled={!form.role || loading}>
+              <button type="submit" className="btn btn-primary" style={{ flex: 2 }} disabled={!form.role || !agreedToTerms || loading}>
                 {loading ? 'Creating account…' : 'Create Account'}
               </button>
             </div>
           </form>
         )}
-
-        {/* Terms */}
-        <p style={{ textAlign: 'center', fontSize: 'var(--text-xs)', color: 'var(--slate)', marginTop: 'var(--sp-6)', lineHeight: 1.6 }}>
-          By joining, you agree to our <span style={{ color: 'var(--coral)' }}>Terms of Service</span> and <span style={{ color: 'var(--coral)' }}>Community Rules</span>.
-          All art must be your own original work.
-        </p>
       </div>
     </div>
   )

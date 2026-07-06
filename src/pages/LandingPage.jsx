@@ -233,8 +233,12 @@ export default function LandingPage() {
         <span style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>
           Indie Art Gallery, a Middleman Merchants LLC platform
         </span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>
-          <ShieldCheck size={13} color="var(--green-ok)" /> Payments secured by Stripe
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
+          <a href="/terms" style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>Terms</a>
+          <a href="/privacy" style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>Privacy</a>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>
+            <ShieldCheck size={13} color="var(--green-ok)" /> Payments secured by Stripe
+          </span>
         </span>
       </footer>
     </div>

@@ -107,9 +107,14 @@ exports.handler = async (event) => {
         return { statusCode: 400, body: JSON.stringify({ error: 'No charge found on this PaymentIntent - cannot release payout' }) };
       }
 
-      // Idempotency key tied to the order: if this request is somehow sent twice
-      // (double-click, network retry), Stripe returns the original transfer instead
-      // of creating a second one and double-paying the artist.
+      // Idempotency key includes the order, destination account, AND amount - not
+      // just the order alone. A key tied only to orderId caused a real bug: if a
+      // transfer attempt fails (e.g. wrong/restricted destination account) and is
+      // later retried with corrected parameters, Stripe rejects the retry outright
+      // because the same key was already used with different parameters. Including
+      // destination+amount means a genuinely-identical retry (double-click, network
+      // retry) still gets deduplicated, while a legitimately-corrected retry gets a
+      // fresh key instead of colliding with the earlier failed attempt.
       const transfer = await stripe.transfers.create(
         {
           amount: Math.round(amount),
@@ -119,7 +124,7 @@ exports.handler = async (event) => {
           transfer_group: orderId,
         },
         {
-          idempotencyKey: `payout-${orderId}`,
+          idempotencyKey: `payout-${orderId}-${artistStripeId}-${Math.round(amount)}`,
         }
       );
 

@@ -40,33 +40,59 @@ export default function Admin() {
     if (!isAdmin) return
     async function loadStats() {
       setStatsLoading(true)
-      try {
-        const [userCountSnap, listingCountSnap, flaggedCountSnap, revenueSnap] = await Promise.all([
-          getCountFromServer(collection(db, 'users')),
-          getCountFromServer(query(collection(db, 'listings'), where('status', '==', 'active'))),
-          getCountFromServer(query(collection(db, 'users'), where('isBanned', '==', true))),
-          // Revenue = sum of winningBid (the item's sale price) across orders that have
-          // actually been paid - 'paid' (awaiting delivery) and 'delivered' (paid out).
-          // This is gross sale price of merchandise, not including the buyer's premium
-          // (a service fee on top) and not the platform's fee cut specifically.
-          getAggregateFromServer(
-            query(collection(db, 'orders'), where('status', 'in', ['paid', 'delivered'])),
-            { total: sum('winningBid') }
-          ),
-        ])
+      // Promise.allSettled instead of Promise.all - each stat loads and displays
+      // independently now. Previously, if ANY one query failed (e.g. the revenue
+      // sum needing a Firestore index), Promise.all rejected the whole batch and
+      // NONE of the four stats updated - even the three that had nothing wrong
+      // with them. That was a real bug, not a Firestore limitation.
+      const [userCountResult, listingCountResult, flaggedCountResult, revenueResult] = await Promise.allSettled([
+        getCountFromServer(collection(db, 'users')),
+        getCountFromServer(query(collection(db, 'listings'), where('status', '==', 'active'))),
+        getCountFromServer(query(collection(db, 'users'), where('isBanned', '==', true))),
+        // Revenue = sum of winningBid (the item's sale price) across orders that have
+        // actually been paid - 'paid' (awaiting delivery) and 'delivered' (paid out).
+        // This is gross sale price of merchandise, not including the buyer's premium
+        // (a service fee on top) and not the platform's fee cut specifically.
+        getAggregateFromServer(
+          query(collection(db, 'orders'), where('status', 'in', ['paid', 'delivered'])),
+          { total: sum('winningBid') }
+        ),
+      ])
 
-        setStats({
-          totalUsers: String(userCountSnap.data().count),
-          activeListings: String(listingCountSnap.data().count),
-          totalRevenue: `$${(revenueSnap.data().total || 0).toLocaleString()}`,
-          flaggedUsers: String(flaggedCountSnap.data().count),
-        })
-      } catch (err) {
-        console.error('Could not load admin stats:', err)
-        toast.error('Could not load some stats.')
-      } finally {
-        setStatsLoading(false)
+      const newStats = { ...stats }
+      let anyFailed = false
+
+      if (userCountResult.status === 'fulfilled') {
+        newStats.totalUsers = String(userCountResult.value.data().count)
+      } else {
+        console.error('Could not load total users:', userCountResult.reason)
+        anyFailed = true
       }
+
+      if (listingCountResult.status === 'fulfilled') {
+        newStats.activeListings = String(listingCountResult.value.data().count)
+      } else {
+        console.error('Could not load active listings:', listingCountResult.reason)
+        anyFailed = true
+      }
+
+      if (flaggedCountResult.status === 'fulfilled') {
+        newStats.flaggedUsers = String(flaggedCountResult.value.data().count)
+      } else {
+        console.error('Could not load flagged users:', flaggedCountResult.reason)
+        anyFailed = true
+      }
+
+      if (revenueResult.status === 'fulfilled') {
+        newStats.totalRevenue = `$${(revenueResult.value.data().total || 0).toLocaleString()}`
+      } else {
+        console.error('Could not load total revenue:', revenueResult.reason)
+        anyFailed = true
+      }
+
+      setStats(newStats)
+      if (anyFailed) toast.error('Some stats could not load - check console for details.')
+      setStatsLoading(false)
     }
     loadStats()
   }, [isAdmin])

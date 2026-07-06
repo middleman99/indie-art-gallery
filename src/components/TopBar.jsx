@@ -1,12 +1,10 @@
 // src/components/TopBar.jsx
 import { useNavigate } from 'react-router-dom'
-import { Bell, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-
 export default function TopBar({ title, showSearch = false, back = false }) {
   const navigate = useNavigate()
   const { user } = useAuth()
-
   return (
     <header className="topbar">
       {back ? (
@@ -21,13 +19,11 @@ export default function TopBar({ title, showSearch = false, back = false }) {
           Indie<span>Art</span>
         </div>
       )}
-
       {title && (
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
           {title}
         </h2>
       )}
-
       <div className="flex gap-3 items-center">
         {showSearch && (
           <button
@@ -37,14 +33,9 @@ export default function TopBar({ title, showSearch = false, back = false }) {
             <Search size={20} />
           </button>
         )}
-        {user && (
-          <button
-            onClick={() => navigate('/notifications')}
-            style={{ background: 'none', border: 'none', color: 'var(--slate)', cursor: 'pointer', position: 'relative' }}
-          >
-            <Bell size={20} />
-          </button>
-        )}
+        {/* Notification bell removed - it linked to /notifications, a route that
+            never existed, silently redirecting to home. Re-add once a real
+            notifications feature exists rather than a dead link. */}
       </div>
     </header>
   )

@@ -19,18 +19,37 @@ export default function ConnectStripe() {
   async function connectStripe() {
     setLoading(true)
     try {
-      // Create Stripe Connect account
-      const res = await fetch('/.netlify/functions/stripe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create_account', data: {} }),
-      })
-      const { accountId } = await res.json()
+      // Reuse the existing Stripe account if one was already created for this artist,
+      // instead of creating a brand new one every time this button is clicked. Without
+      // this check, clicking Connect Stripe more than once (e.g. retrying after an
+      // earlier error) silently created duplicate Stripe accounts, and whichever one
+      // happened to save to Firestore last might not be the one that actually
+      // completed onboarding - a real bug that caused a confusing "Restricted account"
+      // failure later, at payout time, that had nothing to do with the payout code itself.
+      let accountId = profile?.stripeAccountId
 
-      // Save accountId to Firebase
-      await updateDoc(doc(db, 'users', user.uid), {
-        stripeAccountId: accountId,
-      })
+      if (!accountId) {
+        const res = await fetch('/.netlify/functions/stripe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'create_account', data: {} }),
+        })
+        const accountData = await res.json()
+
+        if (!res.ok || !accountData.accountId) {
+          console.error('Stripe account creation failed:', accountData.error || accountData)
+          toast.error(accountData.error || 'Could not create your Stripe account. Try again.')
+          setLoading(false)
+          return
+        }
+        accountId = accountData.accountId
+
+        // Save accountId to Firebase
+        await updateDoc(doc(db, 'users', user.uid), {
+          stripeAccountId: accountId,
+        })
+        await refreshProfile()
+      }
 
       // Get onboarding link
       const res2 = await fetch('/.netlify/functions/stripe', {
@@ -44,15 +63,21 @@ export default function ConnectStripe() {
           },
         }),
       })
-      const { url } = await res2.json()
+      const linkData = await res2.json()
+
+      if (!res2.ok || !linkData.url) {
+        console.error('Stripe onboarding link creation failed:', linkData.error || linkData)
+        toast.error(linkData.error || 'Your Stripe account was created, but we could not start onboarding. Try again from this page.')
+        setLoading(false)
+        return
+      }
 
       // Redirect to Stripe onboarding
-      window.location.href = url
+      window.location.href = linkData.url
 
     } catch (err) {
       toast.error('Could not connect Stripe. Try again.')
       console.error(err)
-    } finally {
       setLoading(false)
     }
   }

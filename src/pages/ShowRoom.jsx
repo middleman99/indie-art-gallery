@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
-import { doc, getDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -138,7 +138,9 @@ function BidPanel({ showId, show, user, profile, isHost }) {
         createdAt: serverTimestamp(),
       })
       // Create a pending order with 1hr payment window
-      await addDoc(collection(db, 'orders'), {
+      const paymentDeadline = new Date(Date.now() + 60 * 60 * 1000)
+      const newOrderRef = doc(collection(db, 'orders'))
+      await setDoc(newOrderRef, {
         showId,
         pieceId: show.pieceId,
         pieceTitle: show.pieceTitle,
@@ -148,9 +150,26 @@ function BidPanel({ showId, show, user, profile, isHost }) {
         artistId: show.artistId,
         artistName: show.artistName,
         status: 'pending_payment',
-        paymentDeadline: new Date(Date.now() + 60 * 60 * 1000),
+        paymentDeadline,
         createdAt: serverTimestamp(),
       })
+
+      // Lock the underlying listing too, if this auctioned piece corresponds to a
+      // real Firestore listing (GoLive.jsx can also fall back to demo pieces with
+      // fake ids like 'p1' that don't exist as real documents - this simply fails
+      // silently and harmlessly in that case, logged but not blocking the flow).
+      if (show.pieceId) {
+        try {
+          await updateDoc(doc(db, 'listings', show.pieceId), {
+            status: 'pending_sale',
+            pendingOrderId: newOrderRef.id,
+            pendingSaleExpiresAt: paymentDeadline,
+          })
+        } catch (listingErr) {
+          console.error('Could not lock underlying listing for live-show sale (may be a demo piece):', listingErr)
+        }
+      }
+
       toast.success('Auction closed! Order created.')
 
       // Send auction_won email to the winning bidder

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { doc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
+import { doc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
 import { db } from '../firebase'
 import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight } from 'lucide-react'
 import ArtCard from '../components/ArtCard'
@@ -187,7 +187,10 @@ function OffersPanel({ user }) {
     setRespondingId(offer.id)
     try {
       if (accept) {
-        await addDoc(collection(db, 'orders'), {
+        const paymentDeadline = new Date(Date.now() + 60 * 60 * 1000)
+        const newOrderRef = doc(collection(db, 'orders'))
+
+        await setDoc(newOrderRef, {
           showId: null,
           pieceId: offer.listingId,
           pieceTitle: offer.pieceTitle,
@@ -197,9 +200,24 @@ function OffersPanel({ user }) {
           artistId: offer.artistId,
           artistName: offer.artistName,
           status: 'pending_payment',
-          paymentDeadline: new Date(Date.now() + 60 * 60 * 1000),
+          paymentDeadline,
           createdAt: serverTimestamp(),
         })
+
+        // Lock the listing (artist accepting their own listing's offer already has
+        // full update permission on it, same as any other edit to their own listing).
+        // Without this, the piece stayed fully purchasable via Buy Now by someone
+        // else while this offer-based sale was still pending payment.
+        try {
+          await updateDoc(doc(db, 'listings', offer.listingId), {
+            status: 'pending_sale',
+            pendingOrderId: newOrderRef.id,
+            pendingSaleExpiresAt: paymentDeadline,
+          })
+        } catch (listingErr) {
+          console.error('Could not lock listing after accepting offer:', listingErr)
+        }
+
         await updateDoc(doc(db, 'offers', offer.id), { status: 'accepted' })
 
         const othersQ = query(

@@ -133,6 +133,30 @@ exports.handler = async (event) => {
         body: JSON.stringify({ transferId: transfer.id }),
       };
     }
+    if (action === 'refund_order') {
+      // Admin-triggered refund. If a payout was already sent to the artist
+      // (transferId present), it must be reversed FIRST, before refunding the
+      // original charge - otherwise the platform balance goes negative trying
+      // to fund a refund for money that already left for the connected account.
+      const { paymentIntentId, transferId } = data;
+      if (!paymentIntentId) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing paymentIntentId' }) };
+      }
+
+      if (transferId) {
+        await stripe.transfers.createReversal(transferId);
+      }
+
+      const refund = await stripe.refunds.create(
+        { payment_intent: paymentIntentId },
+        { idempotencyKey: `refund-${paymentIntentId}` }
+      );
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ refundId: refund.id }),
+      };
+    }
     return {
       statusCode: 400,
       body: JSON.stringify({ error: 'Unknown action' }),

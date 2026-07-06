@@ -26,6 +26,7 @@ export default function Admin() {
 
   const [payoutOrders, setPayoutOrders] = useState([])
   const [payoutsLoading, setPayoutsLoading] = useState(false)
+  const [refundingId, setRefundingId] = useState(null)
 
   const [liveShows, setLiveShows] = useState([])
   const [recentSales, setRecentSales] = useState([])
@@ -149,6 +150,47 @@ export default function Admin() {
       toast.error('Could not update ban status.')
     } finally {
       setBanningId(null)
+    }
+  }
+
+  async function handleRefund(order) {
+    if (refundingId) return
+    if (!order.paymentIntentId) {
+      toast.error('This order has no paymentIntentId on file - cannot process a refund automatically. Handle it directly in the Stripe Dashboard.')
+      return
+    }
+    const confirmed = window.confirm(
+      `Refund $${order.winningBid} to ${order.buyerName} for "${order.pieceTitle}"?` +
+      (order.status === 'delivered' ? ' This will also reverse the payout already sent to the artist.' : '') +
+      ' This cannot be undone.'
+    )
+    if (!confirmed) return
+
+    setRefundingId(order.id)
+    try {
+      const res = await fetch('/.netlify/functions/stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'refund_order',
+          data: {
+            paymentIntentId: order.paymentIntentId,
+            // Only reverse a transfer if one was actually sent (order reached 'delivered').
+            transferId: order.status === 'delivered' ? order.payoutTransferId : undefined,
+          },
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok || result.error) throw new Error(result.error || 'Refund failed')
+
+      await updateDoc(doc(db, 'orders', order.id), { status: 'refunded' })
+      setPayoutOrders(list => list.filter(o => o.id !== order.id))
+      toast.success('Refund processed.')
+    } catch (err) {
+      console.error('Refund failed:', err)
+      toast.error(err.message || 'Could not process refund.')
+    } finally {
+      setRefundingId(null)
     }
   }
 
@@ -354,12 +396,22 @@ export default function Admin() {
                       <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{o.pieceTitle}</div>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{o.artistName} ← {o.buyerName} — ${o.winningBid}</div>
                     </div>
-                    <span className="badge" style={{
-                      background: o.status === 'delivered' ? 'rgba(46,204,113,0.15)' : 'rgba(255,215,0,0.15)',
-                      color: o.status === 'delivered' ? 'var(--green-ok)' : 'var(--gold)',
-                    }}>
-                      {o.status === 'delivered' ? 'Paid Out' : 'Awaiting Delivery'}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
+                      <span className="badge" style={{
+                        background: o.status === 'delivered' ? 'rgba(46,204,113,0.15)' : 'rgba(255,215,0,0.15)',
+                        color: o.status === 'delivered' ? 'var(--green-ok)' : 'var(--gold)',
+                      }}>
+                        {o.status === 'delivered' ? 'Paid Out' : 'Awaiting Delivery'}
+                      </span>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: 'var(--red-err)' }}
+                        onClick={() => handleRefund(o)}
+                        disabled={refundingId === o.id}
+                      >
+                        {refundingId === o.id ? '...' : 'Refund'}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

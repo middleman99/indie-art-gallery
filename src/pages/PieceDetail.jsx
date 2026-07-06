@@ -88,6 +88,50 @@ async function tryCloseExpiredAuction(piece) {
   }
 }
 
+// Reverts an abandoned Buy Now / offer-accept purchase back to 'active' once its
+// payment window has genuinely passed, and marks the associated order 'expired'.
+// Runs as a transaction so concurrent viewers can't double-process the same revert,
+// and re-checks the order is still actually unpaid before touching it (in case
+// payment succeeded in the interim).
+async function tryRevertExpiredPendingSale(piece) {
+  if (piece.isDemo) return
+  if (piece.status !== 'pending_sale') return
+  if (!piece.pendingSaleExpiresAt) return
+
+  const expiresAt = piece.pendingSaleExpiresAt.toDate ? piece.pendingSaleExpiresAt.toDate() : new Date(piece.pendingSaleExpiresAt)
+  if (new Date() < expiresAt) return // not expired yet
+
+  const listingRef = doc(db, 'listings', piece.id)
+  const orderRef = piece.pendingOrderId ? doc(db, 'orders', piece.pendingOrderId) : null
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const freshListingSnap = await transaction.get(listingRef)
+      if (!freshListingSnap.exists() || freshListingSnap.data().status !== 'pending_sale') return // already handled
+
+      let orderStillUnpaid = true
+      if (orderRef) {
+        const freshOrderSnap = await transaction.get(orderRef)
+        if (freshOrderSnap.exists() && freshOrderSnap.data().status !== 'pending_payment') {
+          orderStillUnpaid = false // it was paid (or already expired) in the interim - don't touch it
+        }
+      }
+
+      transaction.update(listingRef, {
+        status: 'active',
+        pendingOrderId: null,
+        pendingSaleExpiresAt: null,
+      })
+
+      if (orderRef && orderStillUnpaid) {
+        transaction.update(orderRef, { status: 'expired' })
+      }
+    })
+  } catch (e) {
+    console.error('Could not revert expired pending sale:', e)
+  }
+}
+
 const DEMO_PIECES = {
   'a1': { id: 'a1', title: 'Golden Hour', artistName: 'Maya R.', artistId: 'demo1', price: 280, listingType: 'fixed', artType: 'Painting', medium: 'Acrylic on canvas', dimensions: '24" x 36"', year: '2024', description: 'A stunning depiction of the last light of day washing over an urban landscape. Painted with bold strokes and warm tones.', deliveryType: 'physical', allowOffers: true, isDemo: true },
   'a2': { id: 'a2', title: 'Neon Dreams', artistName: 'Dev K.', artistId: 'demo2', currentBid: 120, startingBid: 80, listingType: 'auction', artType: 'Digital', description: 'A digital exploration of city life at night. Available as a high resolution print.', deliveryType: 'digital', allowOffers: false, isDemo: true },
@@ -176,6 +220,7 @@ export default function PieceDetail() {
   // auction isn't already closed, per the checks inside tryCloseExpiredAuction itself.
   useEffect(() => {
     if (piece) tryCloseExpiredAuction(piece)
+    if (piece) tryRevertExpiredPendingSale(piece)
   }, [piece])
 
   const secondsLeft = useCountdown(piece?.listingType === 'auction' ? piece?.auctionEndsAt : null)
@@ -207,23 +252,46 @@ export default function PieceDetail() {
     }
     setBuyingNow(true)
     try {
-      const orderRef = await addDoc(collection(db, 'orders'), {
-        showId: null,
-        pieceId: piece.id,
-        pieceTitle: piece.title,
-        winningBid: piece.price,
-        buyerId: user.uid,
-        buyerName: profile?.displayName || 'Buyer',
-        artistId: piece.artistId,
-        artistName: piece.artistName,
-        status: 'pending_payment',
-        paymentDeadline: new Date(Date.now() + 60 * 60 * 1000),
-        createdAt: serverTimestamp(),
+      const listingRef = doc(db, 'listings', piece.id)
+      const newOrderRef = doc(collection(db, 'orders'))
+      const paymentDeadline = new Date(Date.now() + 60 * 60 * 1000)
+
+      // Transaction: re-check the listing is still actually active, then lock it
+      // (pending_sale) AND create the order atomically. This is what actually
+      // prevents two different buyers from simultaneously Buy-Now-ing the same
+      // one-of-a-kind piece - previously nothing reserved the listing at all.
+      await runTransaction(db, async (transaction) => {
+        const freshSnap = await transaction.get(listingRef)
+        if (!freshSnap.exists()) throw new Error('This piece no longer exists.')
+        if (freshSnap.data().status !== 'active') {
+          throw new Error('This piece is no longer available - someone else may have just purchased it.')
+        }
+
+        transaction.update(listingRef, {
+          status: 'pending_sale',
+          pendingOrderId: newOrderRef.id,
+          pendingSaleExpiresAt: paymentDeadline,
+        })
+
+        transaction.set(newOrderRef, {
+          showId: null,
+          pieceId: piece.id,
+          pieceTitle: piece.title,
+          winningBid: piece.price,
+          buyerId: user.uid,
+          buyerName: profile?.displayName || 'Buyer',
+          artistId: piece.artistId,
+          artistName: piece.artistName,
+          status: 'pending_payment',
+          paymentDeadline,
+          createdAt: serverTimestamp(),
+        })
       })
-      navigate('/checkout', { state: { piece, orderId: orderRef.id } })
+
+      navigate('/checkout', { state: { piece, orderId: newOrderRef.id } })
     } catch (err) {
       console.error('Could not create order for Buy Now:', err)
-      toast.error('Could not start checkout. Try again.')
+      toast.error(err.message || 'Could not start checkout. Try again.')
     } finally {
       setBuyingNow(false)
     }

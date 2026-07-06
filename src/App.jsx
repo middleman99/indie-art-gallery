@@ -98,6 +98,21 @@ function OrderComplete() {
             } catch (orderErr) {
               console.error('Could not update order status to paid for orderId', meta.orderId, orderErr)
             }
+
+            // Finalize the listing from 'pending_sale' to 'sold', now that payment has
+            // actually succeeded - only present for Buy Now / offer-accept purchases of
+            // a real listing (see Checkout.jsx's metadata construction).
+            if (meta.pieceId) {
+              try {
+                await updateDoc(doc(db, 'listings', meta.pieceId), {
+                  status: 'sold',
+                  pendingOrderId: null,
+                  pendingSaleExpiresAt: null,
+                })
+              } catch (listingErr) {
+                console.error('Could not finalize listing to sold for pieceId', meta.pieceId, listingErr)
+              }
+            }
           } else {
             console.error('No orderId in payment metadata - order status was not updated. This is expected for direct Buy Now purchases with no pre-existing order.')
           }

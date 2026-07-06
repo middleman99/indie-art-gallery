@@ -148,6 +148,10 @@ export default function Checkout() {
           total: fees.total,
         }
         if (orderId) metadata.orderId = orderId
+        // pieceId lets /order-complete finalize the listing to 'sold' once payment
+        // actually succeeds - only relevant for real (non-demo) listings, which is
+        // exactly when piece.id corresponds to a real Firestore listings document.
+        if (piece.id && !piece.isDemo) metadata.pieceId = piece.id
 
         const res = await fetch('/.netlify/functions/stripe', {
           method: 'POST',

@@ -41,9 +41,13 @@ export default function ListArt() {
     medium: '',
     dimensions: '',
     year: new Date().getFullYear().toString(),
+    provenance: '',
+    estimateLow: '',
+    estimateHigh: '',
     listingType: 'fixed',
     price: '',
     startingBid: '',
+    reservePrice: '',
     auctionDuration: '24',
     deliveryType: 'physical',
     allowOffers: false,
@@ -69,6 +73,10 @@ export default function ListArt() {
     e.preventDefault()
     if (!form.isOriginal) { toast.error('Confirm this is your original work.'); return }
     if (!form.artType) { toast.error('Select an art type.'); return }
+    if (form.estimateLow && form.estimateHigh && parseFloat(form.estimateLow) > parseFloat(form.estimateHigh)) {
+      toast.error('Estimate low value must not be higher than the high value.')
+      return
+    }
     setSaving(true)
 
     try {
@@ -81,17 +89,14 @@ export default function ListArt() {
 
       const listingData = {
         ...form,
-        // Lowercase copy for case-insensitive prefix search on /search - Firestore
-        // has no native full-text "contains" search without a paid third-party
-        // service (e.g. Algolia), so this only matches from the START of the title.
         titleLower: form.title.trim().toLowerCase(),
+        provenance: form.provenance.trim(),
+        estimateLow: form.estimateLow ? parseFloat(form.estimateLow) : null,
+        estimateHigh: form.estimateHigh ? parseFloat(form.estimateHigh) : null,
         price: form.listingType === 'fixed' ? parseFloat(form.price) : null,
         startingBid: form.listingType === 'auction' ? parseFloat(form.startingBid) : null,
+        reservePrice: form.listingType === 'auction' && form.reservePrice ? parseFloat(form.reservePrice) : null,
         currentBid: null,
-        // Auction closing fields - previously auctionDuration was stored as a plain
-        // string with no actual enforcement anywhere. auctionEndsAt is the real
-        // deadline PieceDetail.jsx checks against; currentBidderId/Name/auctionClosed
-        // mirror the pattern already used for live-show auctions in shows/{id}.
         auctionEndsAt: form.listingType === 'auction'
           ? new Date(Date.now() + parseInt(form.auctionDuration, 10) * 60 * 60 * 1000)
           : null,
@@ -195,6 +200,35 @@ export default function ListArt() {
             <input className="input" placeholder='e.g. 24" x 36"' value={form.dimensions} onChange={e => set('dimensions', e.target.value)} />
           </div>
 
+          {/* Provenance / condition notes - trust signal, shown on PieceDetail */}
+          <div className="input-group">
+            <label className="input-label">Provenance & Condition (optional)</label>
+            <textarea
+              className="input"
+              placeholder="e.g. Created in the artist's studio in 2024. Excellent condition, no visible wear. Comes directly from the artist."
+              value={form.provenance}
+              onChange={e => set('provenance', e.target.value)}
+            />
+          </div>
+
+          {/* Pre-sale estimate range - catalog-style, purely informational */}
+          <div className="input-group">
+            <label className="input-label">Estimated Value Range (optional)</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)' }}>$</span>
+                <input className="input" type="number" min="0" step="0.01" placeholder="Low" value={form.estimateLow} onChange={e => set('estimateLow', e.target.value)} style={{ paddingLeft: 28 }} />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)' }}>$</span>
+                <input className="input" type="number" min="0" step="0.01" placeholder="High" value={form.estimateHigh} onChange={e => set('estimateHigh', e.target.value)} style={{ paddingLeft: 28 }} />
+              </div>
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', marginTop: 'var(--sp-2)' }}>
+              Shown to buyers as a general value range, like an auction catalog estimate. Doesn't affect your actual price or bidding.
+            </div>
+          </div>
+
           <div className="divider" />
 
           {/* Delivery type */}
@@ -258,6 +292,16 @@ export default function ListArt() {
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)' }}>$</span>
                   <input className="input" type="number" min="1" step="0.01" required placeholder="0.00" value={form.startingBid} onChange={e => set('startingBid', e.target.value)} style={{ paddingLeft: 28 }} />
+                </div>
+              </div>
+              <div className="input-group">
+                <label className="input-label">Reserve Price (optional)</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)' }}>$</span>
+                  <input className="input" type="number" min="0" step="0.01" placeholder="No reserve" value={form.reservePrice} onChange={e => set('reservePrice', e.target.value)} style={{ paddingLeft: 28 }} />
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', marginTop: 'var(--sp-2)' }}>
+                  Hidden from bidders. If the highest bid doesn't reach this amount when the auction closes, the piece won't sell.
                 </div>
               </div>
               <div className="input-group">

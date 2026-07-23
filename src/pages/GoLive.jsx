@@ -10,15 +10,11 @@ import { Radio, Gavel, Package } from 'lucide-react'
 
 const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print', 'Other']
 
-// Demo listings — until real listings are pulled from Firebase
 const DEMO_LISTINGS = [
   { id: 'p1', title: 'Golden Hour', price: 280, listingType: 'fixed', artType: 'Painting' },
   { id: 'p2', title: 'Neon Dreams', currentBid: 120, startingBid: 80, listingType: 'auction', artType: 'Digital' },
 ]
 
-// Fire-and-forget: email every follower that this artist just went live.
-// Does not block the host's navigation into their own show.
-// Requires users/{artistId}/followers/{followerId} docs with an `email` field.
 async function notifyFollowersGoingLive(artistId, artistName, showTitle) {
   try {
     const followersSnap = await getDocs(collection(db, 'users', artistId, 'followers'))
@@ -37,7 +33,6 @@ async function notifyFollowersGoingLive(artistId, artistName, showTitle) {
       )
     await Promise.all(sends)
   } catch (err) {
-    // Followers subcollection may not exist yet, or rules may block it - don't break Go Live over this
     console.error('Could not load followers for going-live notification:', err)
   }
 }
@@ -101,13 +96,13 @@ export default function GoLive() {
         currentBid: form.allowBidding ? parseFloat(startingBid) : null,
         currentBidder: null,
         currentBidderId: null,
+        reservePrice: form.allowBidding && selectedPiece?.reservePrice ? selectedPiece.reservePrice : null,
         createdAt: serverTimestamp(),
       }
 
       const docRef = await addDoc(collection(db, 'shows'), showData)
       toast.success('Show created! Starting your stream...')
 
-      // Notify followers - fire and forget, don't make the artist wait on this
       notifyFollowersGoingLive(user.uid, profile?.displayName || 'Artist', form.title)
 
       navigate(`/show/${docRef.id}?host=true&room=${roomName}`)
@@ -176,7 +171,6 @@ export default function GoLive() {
             </div>
           </div>
 
-          {/* Bidding toggle */}
           <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,248,240,0.08)' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', cursor: 'pointer' }}>
               <input
@@ -194,7 +188,6 @@ export default function GoLive() {
             </label>
           </div>
 
-          {/* Piece selector */}
           {form.allowBidding && (
             <div>
               <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Select Piece to Auction *</div>
@@ -231,10 +224,14 @@ export default function GoLive() {
                   ))}
                 </div>
               )}
+              {selectedPiece?.reservePrice && (
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--gold)', marginTop: 'var(--sp-2)' }}>
+                  This piece has a ${selectedPiece.reservePrice} reserve set - it will carry over to this live auction.
+                </div>
+              )}
             </div>
           )}
 
-          {/* Starting bid */}
           {form.allowBidding && selectedPiece && (
             <div className="input-group">
               <label className="input-label">Starting Bid *</label>

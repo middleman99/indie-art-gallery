@@ -6,7 +6,7 @@ import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import TopBar from '../components/TopBar'
-import { Heart, Share2, Package, Monitor, Gavel, ShoppingBag, Clock, Trophy } from 'lucide-react'
+import { Heart, Share2, Package, Monitor, Gavel, ShoppingBag, Clock, Trophy, ShieldCheck, Lock } from 'lucide-react'
 
 function calculateFees(price) {
   let artistFee, buyerPremium
@@ -34,6 +34,14 @@ function calculateFees(price) {
   }
 }
 
+// Whether the current high bid (or lack thereof) has cleared the artist's reserve.
+// A listing with no reservePrice set always returns true, preserving the exact
+// prior behavior for every auction created before this feature existed.
+function isReserveMet(piece) {
+  if (!piece.reservePrice) return true
+  return (piece.currentBid || 0) >= piece.reservePrice
+}
+
 // Closes an expired, not-yet-closed listing auction. Runs as a transaction so that
 // if multiple visitors happen to load this page around the same time after the
 // deadline, only one of them actually wins the race and closes it / creates the order.
@@ -59,7 +67,14 @@ async function tryCloseExpiredAuction(piece) {
       if (!freshSnap.exists() || freshSnap.data().auctionClosed) return // someone else already closed it
       const fresh = freshSnap.data()
 
-      if (fresh.currentBidderId) {
+      // Reserve check: only actually sell if there's a winning bid AND (no reserve
+      // was set, or the winning bid met it). A reserve that's never reached means
+      // the auction closes with no sale - same as "no bids at all" from the buyer's
+      // perspective, but the piece stays associated with its real highest bid for
+      // the artist's own reference rather than being silently discarded.
+      const reserveMet = !fresh.reservePrice || (fresh.currentBid || 0) >= fresh.reservePrice
+
+      if (fresh.currentBidderId && reserveMet) {
         transaction.update(listingRef, {
           auctionClosed: true,
           status: 'sold',
@@ -80,6 +95,9 @@ async function tryCloseExpiredAuction(piece) {
           createdAt: serverTimestamp(),
         })
       } else {
+        // Either no bids, or a reserve that was never met - close bidding without
+        // a sale. Listing stays 'active' rather than 'sold' so the artist can see
+        // it didn't move and decide whether to relist, lower the reserve, etc.
         transaction.update(listingRef, { auctionClosed: true })
       }
     })
@@ -197,8 +215,6 @@ export default function PieceDetail() {
       setLoading(false)
       return
     }
-    // Live listener, not a one-time load - so bids from other viewers show up in
-    // real time here, same as live-show auctions already do in ShowRoom.jsx.
     const unsub = onSnapshot(
       doc(db, 'listings', id),
       snap => {
@@ -215,9 +231,6 @@ export default function PieceDetail() {
     return unsub
   }, [id])
 
-  // Lazy-close check: fires whenever piece data changes (including on load). Harmless
-  // to call repeatedly - it's a no-op unless the deadline has genuinely passed and the
-  // auction isn't already closed, per the checks inside tryCloseExpiredAuction itself.
   useEffect(() => {
     if (piece) tryCloseExpiredAuction(piece)
     if (piece) tryRevertExpiredPendingSale(piece)
@@ -243,6 +256,8 @@ export default function PieceDetail() {
   const fees = calculateFees(price)
   const auctionExpired = piece.listingType === 'auction' && piece.auctionEndsAt && secondsLeft === 0
   const auctionEnded = piece.auctionClosed || auctionExpired
+  const hasWinningBid = !!piece.currentBidderId
+  const reserveMet = isReserveMet(piece)
 
   async function handleBuyNow() {
     if (!user) { navigate('/auth'); return }
@@ -256,10 +271,6 @@ export default function PieceDetail() {
       const newOrderRef = doc(collection(db, 'orders'))
       const paymentDeadline = new Date(Date.now() + 60 * 60 * 1000)
 
-      // Transaction: re-check the listing is still actually active, then lock it
-      // (pending_sale) AND create the order atomically. This is what actually
-      // prevents two different buyers from simultaneously Buy-Now-ing the same
-      // one-of-a-kind piece - previously nothing reserved the listing at all.
       await runTransaction(db, async (transaction) => {
         const freshSnap = await transaction.get(listingRef)
         if (!freshSnap.exists()) throw new Error('This piece no longer exists.')
@@ -365,7 +376,6 @@ export default function PieceDetail() {
 
       <div className="container" style={{ paddingTop: 'var(--sp-4)', maxWidth: 600 }}>
 
-        {/* Art image */}
         <div style={{ width: '100%', aspectRatio: '1', background: 'linear-gradient(135deg, rgba(255,77,77,0.08), rgba(255,215,0,0.06))', borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '5rem', marginBottom: 'var(--sp-5)', overflow: 'hidden' }}>
           {piece.imageUrl ? (
             <img src={piece.imageUrl} alt={piece.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -374,7 +384,6 @@ export default function PieceDetail() {
           )}
         </div>
 
-        {/* Title + actions */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'var(--sp-3)' }}>
           <div>
             <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', marginBottom: 4 }}>{piece.title}</h1>
@@ -390,7 +399,6 @@ export default function PieceDetail() {
           </div>
         </div>
 
-        {/* Tags */}
         <div className="chips" style={{ marginBottom: 'var(--sp-4)' }}>
           {piece.artType && <span className="chip selected" style={{ cursor: 'default' }}>{piece.artType}</span>}
           {piece.medium && <span className="chip" style={{ cursor: 'default' }}>{piece.medium}</span>}
@@ -402,16 +410,36 @@ export default function PieceDetail() {
           </span>
         </div>
 
-        {/* Description */}
         {piece.description && (
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--slate)', lineHeight: 1.7, marginBottom: 'var(--sp-5)' }}>
             {piece.description}
           </p>
         )}
 
+        {(piece.estimateLow || piece.estimateHigh) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-4)', fontSize: 'var(--text-sm)', color: 'var(--gold)' }}>
+            <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Est.</span>
+            <span style={{ fontFamily: 'var(--font-mono)' }}>
+              {piece.estimateLow && piece.estimateHigh
+                ? `$${piece.estimateLow} – $${piece.estimateHigh}`
+                : `$${piece.estimateLow || piece.estimateHigh}+`}
+            </span>
+          </div>
+        )}
+
+        {piece.provenance && (
+          <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,248,240,0.06)', marginBottom: 'var(--sp-5)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--slate)', marginBottom: 'var(--sp-2)' }}>
+              <ShieldCheck size={13} /> Provenance & Condition
+            </div>
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--cream)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+              {piece.provenance}
+            </p>
+          </div>
+        )}
+
         <div className="divider" />
 
-        {/* Pricing */}
         <div style={{ marginBottom: 'var(--sp-5)' }}>
           {piece.listingType === 'fixed' ? (
             <div>
@@ -429,18 +457,43 @@ export default function PieceDetail() {
               </div>
             </div>
           ) : auctionEnded ? (
-            <div style={{ padding: 'var(--sp-4)', background: 'rgba(46,204,113,0.08)', borderRadius: 'var(--r-md)', border: '1px solid rgba(46,204,113,0.2)', textAlign: 'center' }}>
-              <Trophy size={24} color="var(--green-ok)" style={{ margin: '0 auto var(--sp-2)' }} />
-              <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
-                {piece.currentBidderName ? `Won by ${piece.currentBidderName} — $${piece.currentBid}` : 'Auction ended — no bids'}
+            hasWinningBid && reserveMet ? (
+              <div style={{ padding: 'var(--sp-4)', background: 'rgba(46,204,113,0.08)', borderRadius: 'var(--r-md)', border: '1px solid rgba(46,204,113,0.2)', textAlign: 'center' }}>
+                <Trophy size={24} color="var(--green-ok)" style={{ margin: '0 auto var(--sp-2)' }} />
+                <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
+                  Won by {piece.currentBidderName} — ${piece.currentBid}
+                </div>
               </div>
-            </div>
+            ) : hasWinningBid && !reserveMet ? (
+              <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,215,0,0.06)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,215,0,0.2)', textAlign: 'center' }}>
+                <Lock size={20} color="var(--gold)" style={{ margin: '0 auto var(--sp-2)' }} />
+                <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
+                  Reserve not met — piece did not sell
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', marginTop: 4 }}>
+                  Highest bid was ${piece.currentBid}
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: 'var(--sp-4)', background: 'rgba(46,204,113,0.08)', borderRadius: 'var(--r-md)', border: '1px solid rgba(46,204,113,0.2)', textAlign: 'center' }}>
+                <Trophy size={24} color="var(--green-ok)" style={{ margin: '0 auto var(--sp-2)' }} />
+                <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
+                  Auction ended — no bids
+                </div>
+              </div>
+            )
           ) : (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--sp-3)' }}>
                 <span style={{ color: 'var(--slate)', fontSize: 'var(--text-sm)' }}>Current bid</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--gold)' }}>${piece.currentBid || piece.startingBid}</span>
               </div>
+              {piece.reservePrice && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--text-xs)', color: reserveMet ? 'var(--green-ok)' : 'var(--slate)', marginBottom: 'var(--sp-3)' }}>
+                  <Lock size={11} />
+                  {reserveMet ? 'Reserve met' : 'Reserve not yet met'}
+                </div>
+              )}
               {piece.auctionEndsAt && secondsLeft !== null && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--text-xs)', color: secondsLeft < 3600 ? 'var(--coral)' : 'var(--gold)', fontFamily: 'var(--font-mono)', marginBottom: 'var(--sp-3)' }}>
                   <Clock size={12} /> {formatCountdown(secondsLeft)}
@@ -455,7 +508,6 @@ export default function PieceDetail() {
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--cream)' }}>${fees.total}</span>
               </div>
 
-              {/* Bid input */}
               <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
                   <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)' }}>$</span>
@@ -476,7 +528,6 @@ export default function PieceDetail() {
           )}
         </div>
 
-        {/* Physical shipping notice */}
         {piece.deliveryType === 'physical' && (
           <div style={{ padding: 'var(--sp-3)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', marginBottom: 'var(--sp-4)', fontSize: 'var(--text-xs)', color: 'var(--slate)', display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-3)' }}>
             <Clock size={14} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -484,7 +535,6 @@ export default function PieceDetail() {
           </div>
         )}
 
-        {/* Buy Now button */}
         {piece.listingType === 'fixed' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
             <button className="btn btn-primary btn-lg btn-full" onClick={handleBuyNow} disabled={buyingNow}>
@@ -498,7 +548,6 @@ export default function PieceDetail() {
           </div>
         )}
 
-        {/* Offer input */}
         {showOffer && (
           <div style={{ marginTop: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,248,240,0.08)' }}>
             <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Your Offer</div>

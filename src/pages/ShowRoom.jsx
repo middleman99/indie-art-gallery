@@ -10,7 +10,7 @@ import {
   RoomAudioRenderer,
 } from '@livekit/components-react'
 import '@livekit/components-styles'
-import { Eye, Send, Gavel, Radio, LogOut, Zap, Timer, Trophy } from 'lucide-react'
+import { Eye, Send, Gavel, Radio, LogOut, Zap, Timer, Trophy, Lock } from 'lucide-react'
 
 function Chat({ showId, user, profile }) {
   const [messages, setMessages] = useState([])
@@ -71,7 +71,6 @@ function Chat({ showId, user, profile }) {
   )
 }
 
-// Countdown hook
 function useCountdown(endTime) {
   const [secondsLeft, setSecondsLeft] = useState(null)
 
@@ -97,12 +96,19 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-// Fee table from platform pricing: under $500 = 5% buyer premium, $500+ = 3%
 function calcBuyerPremium(bid) {
   const rate = bid >= 500 ? 0.03 : 0.05
   const buyerPremium = Math.round(bid * rate * 100) / 100
   const total = Math.round((bid + buyerPremium) * 100) / 100
   return { buyerPremium, total }
+}
+
+// Whether the current high bid has cleared the reserve carried over from the
+// underlying listing (see GoLive.jsx). A show with no reservePrice always
+// returns true, preserving prior behavior for every show before this feature.
+function isReserveMet(show) {
+  if (!show?.reservePrice) return true
+  return (show.currentBid || 0) >= show.reservePrice
 }
 
 function BidPanel({ showId, show, user, profile, isHost }) {
@@ -115,8 +121,8 @@ function BidPanel({ showId, show, user, profile, isHost }) {
   const secondsLeft = useCountdown(show?.auctionEndsAt)
   const auctionActive = show?.auctionEndsAt && secondsLeft > 0
   const auctionEnded = show?.auctionEndsAt && secondsLeft === 0 && !show?.auctionClosed
+  const reserveMet = isReserveMet(show)
 
-  // Auto-close auction when timer hits 0 (host triggers this)
   useEffect(() => {
     if (isHost && auctionEnded) {
       closeAuction()
@@ -129,6 +135,27 @@ function BidPanel({ showId, show, user, profile, isHost }) {
       await updateDoc(doc(db, 'shows', showId), { auctionClosed: true })
       return
     }
+
+    // Reserve check: only actually sell if there's no reserve, or the winning bid
+    // met it. Mirrors the same check in PieceDetail.jsx's tryCloseExpiredAuction,
+    // so a reserve set at listing time (ListArt.jsx) protects the artist here too,
+    // not just in the non-live Store auction flow.
+    if (!isReserveMet(show)) {
+      try {
+        await updateDoc(doc(db, 'shows', showId), { auctionClosed: true })
+        await addDoc(collection(db, 'shows', showId, 'chat'), {
+          text: `Auction closed — reserve not met. Highest bid was $${show.currentBid}.`,
+          userId: 'system',
+          userName: 'System',
+          createdAt: serverTimestamp(),
+        })
+        toast.info('Reserve not met — piece did not sell.')
+      } catch (err) {
+        console.error(err)
+      }
+      return
+    }
+
     try {
       await updateDoc(doc(db, 'shows', showId), { auctionClosed: true })
       await addDoc(collection(db, 'shows', showId, 'chat'), {
@@ -137,7 +164,6 @@ function BidPanel({ showId, show, user, profile, isHost }) {
         userName: 'System',
         createdAt: serverTimestamp(),
       })
-      // Create a pending order with 1hr payment window
       const paymentDeadline = new Date(Date.now() + 60 * 60 * 1000)
       const newOrderRef = doc(collection(db, 'orders'))
       await setDoc(newOrderRef, {
@@ -154,10 +180,6 @@ function BidPanel({ showId, show, user, profile, isHost }) {
         createdAt: serverTimestamp(),
       })
 
-      // Lock the underlying listing too, if this auctioned piece corresponds to a
-      // real Firestore listing (GoLive.jsx can also fall back to demo pieces with
-      // fake ids like 'p1' that don't exist as real documents - this simply fails
-      // silently and harmlessly in that case, logged but not blocking the flow).
       if (show.pieceId) {
         try {
           await updateDoc(doc(db, 'listings', show.pieceId), {
@@ -172,7 +194,6 @@ function BidPanel({ showId, show, user, profile, isHost }) {
 
       toast.success('Auction closed! Order created.')
 
-      // Send auction_won email to the winning bidder
       try {
         const buyerSnap = await getDoc(doc(db, 'users', show.currentBidderId))
         const buyerEmail = buyerSnap.exists() ? buyerSnap.data().email : null
@@ -197,7 +218,6 @@ function BidPanel({ showId, show, user, profile, isHost }) {
           console.error('No email on buyer profile, skipped auction_won email for', show.currentBidderId)
         }
       } catch (emailErr) {
-        // Don't let email failure block the auction close flow
         console.error('auction_won email failed:', emailErr)
       }
     } catch (err) {
@@ -257,12 +277,27 @@ function BidPanel({ showId, show, user, profile, isHost }) {
   }
 
   if (show?.auctionClosed) {
+    const hasWinner = !!show.currentBidderId
     return (
-      <div style={{ padding: 'var(--sp-4)', background: 'rgba(46,204,113,0.08)', borderRadius: 'var(--r-md)', border: '1px solid rgba(46,204,113,0.2)', margin: 'var(--sp-3)', textAlign: 'center' }}>
-        <Trophy size={24} color="var(--green-ok)" style={{ margin: '0 auto var(--sp-2)' }} />
-        <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
-          {show.currentBidder ? `Won by ${show.currentBidder} — $${show.currentBid}` : 'No bids — auction closed'}
-        </div>
+      <div style={{ padding: 'var(--sp-4)', background: hasWinner && !reserveMet ? 'rgba(255,215,0,0.06)' : 'rgba(46,204,113,0.08)', borderRadius: 'var(--r-md)', border: hasWinner && !reserveMet ? '1px solid rgba(255,215,0,0.2)' : '1px solid rgba(46,204,113,0.2)', margin: 'var(--sp-3)', textAlign: 'center' }}>
+        {hasWinner && !reserveMet ? (
+          <>
+            <Lock size={20} color="var(--gold)" style={{ margin: '0 auto var(--sp-2)' }} />
+            <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
+              Reserve not met — piece did not sell
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', marginTop: 4 }}>
+              Highest bid was ${show.currentBid}
+            </div>
+          </>
+        ) : (
+          <>
+            <Trophy size={24} color="var(--green-ok)" style={{ margin: '0 auto var(--sp-2)' }} />
+            <div style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>
+              {hasWinner ? `Won by ${show.currentBidder} — $${show.currentBid}` : 'No bids — auction closed'}
+            </div>
+          </>
+        )}
       </div>
     )
   }
@@ -293,6 +328,12 @@ function BidPanel({ showId, show, user, profile, isHost }) {
           Leading: {show.currentBidder}
         </div>
       )}
+      {show?.reservePrice && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--text-xs)', color: reserveMet ? 'var(--green-ok)' : 'var(--slate)', marginBottom: 'var(--sp-2)' }}>
+          <Lock size={11} />
+          {reserveMet ? 'Reserve met' : 'Reserve not yet met'}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 'var(--sp-2)', marginBottom: isHost ? 'var(--sp-3)' : 0 }}>
         <div style={{ position: 'relative', flex: 1 }}>
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>$</span>
@@ -310,7 +351,6 @@ function BidPanel({ showId, show, user, profile, isHost }) {
         </button>
       </div>
 
-      {/* Host timer controls */}
       {isHost && !auctionActive && !show?.auctionClosed && (
         <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
           {[1, 2, 5].map(min => (

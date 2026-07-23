@@ -37,14 +37,29 @@ exports.handler = async (event) => {
         body: JSON.stringify({ url: accountLink.url }),
       };
     }
+    if (action === 'get_account_status') {
+      // Real onboarding completion check. create_account only creates a shell
+      // account - it does NOT mean the artist has entered bank details or passed
+      // identity verification. This is the fix for the bug where the UI showed
+      // "You're set up to get paid" the instant Connect Stripe was clicked, before
+      // the artist ever reached Stripe's own onboarding form. payouts_enabled is
+      // the flag that actually matters for whether Stripe will release money to
+      // this account; details_submitted is included as a secondary signal.
+      const { accountId } = data;
+      if (!accountId) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing accountId' }) };
+      }
+      const account = await stripe.accounts.retrieve(accountId);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          detailsSubmitted: !!account.details_submitted,
+          chargesEnabled: !!account.charges_enabled,
+          payoutsEnabled: !!account.payouts_enabled,
+        }),
+      };
+    }
     if (action === 'create_payment_intent') {
-      // NOTE: this is a plain charge to the PLATFORM's own balance - no destination-charge
-      // fields (transfer_data / application_fee_amount) are set here anymore. Funds are
-      // only ever moved to the artist's connected account later, via the separate
-      // 'create_transfer' action below, after the buyer confirms delivery. This is the
-      // "separate charges and transfers" Stripe Connect pattern, chosen deliberately so
-      // the platform actually holds funds until delivery is confirmed, rather than
-      // auto-transferring at charge time.
       const { amount, metadata, transferGroup } = data;
       const intentParams = {
         amount: Math.round(amount),
@@ -68,12 +83,6 @@ exports.handler = async (event) => {
       };
     }
     if (action === 'get_payment_intent') {
-      // Client-side Stripe.js (publishable key) ALWAYS redacts metadata, even after
-      // a successful payment - confirmed directly in Stripe's own docs. This is the
-      // fix: retrieve it server-side with the secret key, which does return metadata.
-      // Requiring the clientSecret (not just the ID) and verifying it matches mirrors
-      // the same access-control Stripe itself uses for client-side retrieval, so this
-      // can't be used to fetch an arbitrary order's buyer email just by guessing an ID.
       const { paymentIntentId, clientSecret } = data;
       if (!paymentIntentId || !clientSecret) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Missing paymentIntentId or clientSecret' }) };
@@ -91,30 +100,15 @@ exports.handler = async (event) => {
       };
     }
     if (action === 'create_transfer') {
-      // Called only when the buyer confirms delivery. Moves the artist's payout
-      // portion from the platform's balance to their connected account.
       const { paymentIntentId, artistStripeId, amount, orderId } = data;
       if (!paymentIntentId || !artistStripeId || !amount || !orderId) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Missing required transfer fields' }) };
       }
-
-      // Look up the original charge so the transfer can reference it via
-      // source_transaction - this makes Stripe wait for that charge's funds to
-      // actually be available rather than failing for insufficient platform balance.
       const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
       const chargeId = intent.latest_charge;
       if (!chargeId) {
         return { statusCode: 400, body: JSON.stringify({ error: 'No charge found on this PaymentIntent - cannot release payout' }) };
       }
-
-      // Idempotency key includes the order, destination account, AND amount - not
-      // just the order alone. A key tied only to orderId caused a real bug: if a
-      // transfer attempt fails (e.g. wrong/restricted destination account) and is
-      // later retried with corrected parameters, Stripe rejects the retry outright
-      // because the same key was already used with different parameters. Including
-      // destination+amount means a genuinely-identical retry (double-click, network
-      // retry) still gets deduplicated, while a legitimately-corrected retry gets a
-      // fresh key instead of colliding with the earlier failed attempt.
       const transfer = await stripe.transfers.create(
         {
           amount: Math.round(amount),
@@ -127,31 +121,23 @@ exports.handler = async (event) => {
           idempotencyKey: `payout-${orderId}-${artistStripeId}-${Math.round(amount)}`,
         }
       );
-
       return {
         statusCode: 200,
         body: JSON.stringify({ transferId: transfer.id }),
       };
     }
     if (action === 'refund_order') {
-      // Admin-triggered refund. If a payout was already sent to the artist
-      // (transferId present), it must be reversed FIRST, before refunding the
-      // original charge - otherwise the platform balance goes negative trying
-      // to fund a refund for money that already left for the connected account.
       const { paymentIntentId, transferId } = data;
       if (!paymentIntentId) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Missing paymentIntentId' }) };
       }
-
       if (transferId) {
         await stripe.transfers.createReversal(transferId);
       }
-
       const refund = await stripe.refunds.create(
         { payment_intent: paymentIntentId },
         { idempotencyKey: `refund-${paymentIntentId}` }
       );
-
       return {
         statusCode: 200,
         body: JSON.stringify({ refundId: refund.id }),

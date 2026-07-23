@@ -1,5 +1,5 @@
 // src/pages/ConnectStripe.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -13,19 +13,48 @@ export default function ConnectStripe() {
   const toast = useToast()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [checkingStatus, setCheckingStatus] = useState(false)
 
-  const isConnected = !!profile?.stripeAccountId
+  // FIX: an artist is only actually connected once Stripe confirms real onboarding
+  // completion (payoutsEnabled) - NOT the instant a shell account is created.
+  // stripeAccountId existing just means create_account succeeded; it says nothing
+  // about whether the artist ever saw or finished the actual onboarding form.
+  const isConnected = !!profile?.stripeOnboardingComplete
+
+  // If an account exists but we haven't confirmed onboarding is actually done,
+  // verify with Stripe directly. This covers: returning from the Stripe redirect
+  // (?stripe=success), reopening the app later, or closing the tab mid-onboarding
+  // and coming back - all cases where relying on the redirect alone would miss it.
+  useEffect(() => {
+    async function verifyStatus() {
+      if (!profile?.stripeAccountId || profile?.stripeOnboardingComplete) return
+      setCheckingStatus(true)
+      try {
+        const res = await fetch('/.netlify/functions/stripe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'get_account_status',
+            data: { accountId: profile.stripeAccountId },
+          }),
+        })
+        const status = await res.json()
+        if (res.ok && status.payoutsEnabled && status.detailsSubmitted) {
+          await updateDoc(doc(db, 'users', user.uid), { stripeOnboardingComplete: true })
+          await refreshProfile()
+        }
+      } catch (err) {
+        console.error('Could not verify Stripe onboarding status:', err)
+      } finally {
+        setCheckingStatus(false)
+      }
+    }
+    verifyStatus()
+  }, [profile?.stripeAccountId, profile?.stripeOnboardingComplete])
 
   async function connectStripe() {
     setLoading(true)
     try {
-      // Reuse the existing Stripe account if one was already created for this artist,
-      // instead of creating a brand new one every time this button is clicked. Without
-      // this check, clicking Connect Stripe more than once (e.g. retrying after an
-      // earlier error) silently created duplicate Stripe accounts, and whichever one
-      // happened to save to Firestore last might not be the one that actually
-      // completed onboarding - a real bug that caused a confusing "Restricted account"
-      // failure later, at payout time, that had nothing to do with the payout code itself.
       let accountId = profile?.stripeAccountId
 
       if (!accountId) {
@@ -44,14 +73,12 @@ export default function ConnectStripe() {
         }
         accountId = accountData.accountId
 
-        // Save accountId to Firebase
         await updateDoc(doc(db, 'users', user.uid), {
           stripeAccountId: accountId,
         })
         await refreshProfile()
       }
 
-      // Get onboarding link
       const res2 = await fetch('/.netlify/functions/stripe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -72,7 +99,6 @@ export default function ConnectStripe() {
         return
       }
 
-      // Redirect to Stripe onboarding
       window.location.href = linkData.url
 
     } catch (err) {
@@ -99,6 +125,22 @@ export default function ConnectStripe() {
             </p>
             <button className="btn btn-ghost" onClick={() => navigate('/profile')}>
               Back to Profile
+            </button>
+          </div>
+        ) : profile?.stripeAccountId ? (
+          <div style={{ textAlign: 'center', padding: 'var(--sp-10) 0' }}>
+            <div style={{ width: 72, height: 72, borderRadius: 'var(--r-lg)', background: 'rgba(255,215,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--sp-4)' }}>
+              <CreditCard size={32} color="var(--gold)" />
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--sp-3)' }}>
+              Onboarding not finished yet
+            </h2>
+            <p style={{ color: 'var(--slate)', fontSize: 'var(--text-sm)', marginBottom: 'var(--sp-6)', lineHeight: 1.7 }}>
+              You started connecting your bank account but Stripe hasn't confirmed your details yet. Finish onboarding to start receiving payouts.
+            </p>
+            <button className="btn btn-primary btn-lg btn-full" onClick={connectStripe} disabled={loading}>
+              <ExternalLink size={16} />
+              {loading ? 'Connecting…' : checkingStatus ? 'Checking status…' : 'Finish Setting Up'}
             </button>
           </div>
         ) : (

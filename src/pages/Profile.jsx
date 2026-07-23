@@ -77,7 +77,11 @@ function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
       key: 'stripe',
       label: 'Connect your bank account',
       sublabel: 'Required to receive payouts',
-      done: !!profile?.stripeAccountId,
+      // FIX: was profile?.stripeAccountId, which is set the instant a shell Stripe
+      // account is created - before the artist ever completes real onboarding.
+      // stripeOnboardingComplete is only set true after Stripe confirms
+      // payoutsEnabled + detailsSubmitted (see ConnectStripe.jsx).
+      done: !!profile?.stripeOnboardingComplete,
       action: () => navigate('/connect-stripe'),
     },
     {
@@ -204,10 +208,6 @@ function OffersPanel({ user }) {
           createdAt: serverTimestamp(),
         })
 
-        // Lock the listing (artist accepting their own listing's offer already has
-        // full update permission on it, same as any other edit to their own listing).
-        // Without this, the piece stayed fully purchasable via Buy Now by someone
-        // else while this offer-based sale was still pending payment.
         try {
           await updateDoc(doc(db, 'listings', offer.listingId), {
             status: 'pending_sale',
@@ -301,8 +301,6 @@ export default function Profile() {
         setListedCount(0)
       }
       try {
-        // "Sold" = orders that have actually been paid for - 'paid' (awaiting delivery)
-        // and 'delivered' (fully complete). Same definition used in the Admin dashboard.
         const soldSnap = await getCountFromServer(
           query(collection(db, 'orders'), where('artistId', '==', user.uid), where('status', 'in', ['paid', 'delivered']))
         )
@@ -314,6 +312,36 @@ export default function Profile() {
     }
     loadStats()
   }, [user?.uid])
+
+  // FIX: verify real Stripe onboarding status rather than trusting stripeAccountId's
+  // mere presence. This is the same check as ConnectStripe.jsx, duplicated here
+  // (matching this file's existing pattern of small duplicated helpers) because
+  // Stripe's return_url lands the artist back on THIS page (/profile?stripe=success),
+  // so the "Payouts Active" badge needs to update itself right when they land here,
+  // not only if they happen to revisit /connect-stripe afterward.
+  useEffect(() => {
+    async function verifyStripeStatus() {
+      if (!user?.uid || !profile?.stripeAccountId || profile?.stripeOnboardingComplete) return
+      try {
+        const res = await fetch('/.netlify/functions/stripe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'get_account_status',
+            data: { accountId: profile.stripeAccountId },
+          }),
+        })
+        const status = await res.json()
+        if (res.ok && status.payoutsEnabled && status.detailsSubmitted) {
+          await updateDoc(doc(db, 'users', user.uid), { stripeOnboardingComplete: true })
+          await refreshProfile()
+        }
+      } catch (err) {
+        console.error('Could not verify Stripe onboarding status:', err)
+      }
+    }
+    verifyStripeStatus()
+  }, [user?.uid, profile?.stripeAccountId, profile?.stripeOnboardingComplete])
 
   if (!user) {
     return (
@@ -361,7 +389,7 @@ export default function Profile() {
       toast.error('Could not upload photo. Try again.')
     } finally {
       setUploadingAvatar(false)
-      e.target.value = '' // allow picking the same file again if needed
+      e.target.value = ''
     }
   }
 
@@ -412,7 +440,9 @@ export default function Profile() {
               <span className="badge badge-slate" style={{ textTransform: 'capitalize' }}>{profile.role}</span>
             )}
             {isArtist && <span className="badge badge-gold">Artist</span>}
-            {isArtist && profile?.stripeAccountId && (
+            {/* FIX: was profile?.stripeAccountId - showed "Payouts Active" the instant
+                the shell account was created, before onboarding actually finished. */}
+            {isArtist && profile?.stripeOnboardingComplete && (
               <span className="badge" style={{ background: 'rgba(46,204,113,0.15)', color: 'var(--green-ok)' }}>Payouts Active</span>
             )}
           </div>
@@ -499,7 +529,8 @@ export default function Profile() {
           {isArtist && (
             <button className="btn btn-ghost btn-full" onClick={() => navigate('/connect-stripe')}>
               <CreditCard size={16} />
-              {profile?.stripeAccountId ? 'Manage Payouts' : 'Connect Bank Account to Get Paid'}
+              {/* FIX: was profile?.stripeAccountId - see badge fix above for why */}
+              {profile?.stripeOnboardingComplete ? 'Manage Payouts' : 'Connect Bank Account to Get Paid'}
             </button>
           )}
           <button className="btn btn-ghost btn-full" onClick={() => navigate('/orders')}>

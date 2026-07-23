@@ -32,9 +32,6 @@ export function AuthProvider({ children }) {
     return unsub
   }, [])
   async function signup({ email, password, displayName, role }) {
-    // Normalize email casing at the source, so stored profile.email always matches
-    // what Firebase Auth itself normalizes to - prevents case-mismatch bugs anywhere
-    // this field is compared against a hardcoded string (like the admin check below).
     const normalizedEmail = email.trim().toLowerCase()
     const cred = await createUserWithEmailAndPassword(auth, normalizedEmail, password)
     await updateProfile(cred.user, { displayName })
@@ -42,7 +39,6 @@ export function AuthProvider({ children }) {
       uid: cred.user.uid,
       email: normalizedEmail,
       displayName,
-      // Lowercase copy for case-insensitive artist-name prefix search on /search
       displayNameLower: displayName.trim().toLowerCase(),
       role,
       bio: '',
@@ -51,14 +47,17 @@ export function AuthProvider({ children }) {
       instagram: '',
       website: '',
       stripeAccountId: null,
+      // FIX (Stripe onboarding bug): stripeAccountId alone was being used to mean
+      // "connected", but it's set the instant a shell account is created - before
+      // the artist ever completes real onboarding. This new field is only ever
+      // set true after Stripe confirms payoutsEnabled + detailsSubmitted, via the
+      // get_account_status check in ConnectStripe.jsx / Profile.jsx.
+      stripeOnboardingComplete: false,
       isBanned: false,
       isVerified: false,
       followerCount: 0,
       totalSales: 0,
       createdAt: serverTimestamp(),
-      // Real audit trail for Terms/Privacy acceptance - not just decorative text.
-      // Age (18+) is enforced by the required checkbox in Auth.jsx; this timestamp
-      // is the record that they actually agreed, and when.
       termsAcceptedAt: serverTimestamp(),
     }
     await setDoc(doc(db, 'users', cred.user.uid), userData)
@@ -81,9 +80,6 @@ export function AuthProvider({ children }) {
     if (snap.exists()) setProfile(snap.data())
   }
   const isArtist = profile?.role === 'artist' || profile?.role === 'both'
-  // Case-insensitive comparison - belt-and-suspenders alongside normalizing at signup,
-  // so this stays correct even for accounts created before this fix, or if the email
-  // field is ever manually edited in Firestore with different casing again.
   const isAdmin  = profile?.email?.toLowerCase() === 'manager@middlemanmerchants.com'
   return (
     <AuthContext.Provider value={{ user, profile, loading, isArtist, isAdmin, signup, login, logout, refreshProfile }}>

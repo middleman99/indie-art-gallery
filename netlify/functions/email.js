@@ -45,10 +45,18 @@ exports.handler = async (event) => {
       );
     }
     else if (type === 'payment_complete') {
+      // Certificate link is optional - certificate generation happens in a
+      // separate function call and may not have finished or may have failed
+      // without blocking this email (see App.jsx's OrderComplete). When present,
+      // it's inserted as its own button; when absent, the email looks exactly
+      // as it did before this feature existed.
+      const certificateSection = data.certificateUrl
+        ? '<a href="' + data.certificateUrl + '" style="display:inline-block;background:#FFD700;color:#1A1A2E;padding:14px 28px;border-radius:999px;text-decoration:none;font-weight:bold;margin-top:12px;">View Certificate of Authenticity</a>'
+        : '';
       await sendEmail(
         data.buyerEmail,
         'Payment confirmed for ' + data.pieceTitle,
-        '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1A1A2E;color:#FFF8F0;padding:40px;border-radius:12px;"><h1 style="color:#2ECC71;font-size:28px;">Payment confirmed!</h1><p>Your payment of <strong>$' + data.total + '</strong> for <strong>' + data.pieceTitle + '</strong> has been received.</p><a href="https://indieartgallery.live/orders" style="display:inline-block;background:#FF4D4D;color:white;padding:14px 28px;border-radius:999px;text-decoration:none;font-weight:bold;">View Orders</a></div>'
+        '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#1A1A2E;color:#FFF8F0;padding:40px;border-radius:12px;"><h1 style="color:#2ECC71;font-size:28px;">Payment confirmed!</h1><p>Your payment of <strong>$' + data.total + '</strong> for <strong>' + data.pieceTitle + '</strong> has been received.</p><div style="display:flex;flex-direction:column;gap:12px;"><a href="https://indieartgallery.live/orders" style="display:inline-block;background:#FF4D4D;color:white;padding:14px 28px;border-radius:999px;text-decoration:none;font-weight:bold;">View Orders</a>' + certificateSection + '</div></div>'
       );
     }
     else if (type === 'artist_going_live') {

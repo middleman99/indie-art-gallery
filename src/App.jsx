@@ -1,7 +1,7 @@
 // src/App.jsx
 import { useState, useEffect } from 'react'
 import { useNavigate, Routes, Route, Navigate } from 'react-router-dom'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, updateDoc, getDoc } from 'firebase/firestore'
 import { db } from './firebase'
 import { useAuth } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
@@ -40,8 +40,6 @@ function ArtistRoute({ children }) {
 
 function OrderComplete() {
   const navigate = useNavigate()
-  // 'checking' -> verifying with Stripe, 'succeeded' -> confirmed paid,
-  // 'failed' -> payment did not succeed, 'unknown' -> no client secret in URL at all
   const [status, setStatus] = useState('checking')
 
   useEffect(() => {
@@ -51,18 +49,11 @@ function OrderComplete() {
       const paymentIntentId = params.get('payment_intent')
 
       if (!clientSecret || !paymentIntentId) {
-        // Page was reached without a Stripe redirect (e.g. direct nav) - nothing to verify
         setStatus('unknown')
         return
       }
 
       try {
-        // NOTE: this deliberately does NOT use stripe.retrievePaymentIntent() (the
-        // client-side, publishable-key call) - Stripe redacts metadata on all
-        // publishable-key requests, confirmed in their own docs. That was a real bug:
-        // orderId/buyerEmail/etc were NEVER actually readable here, for any order,
-        // ever. Fixed by asking the Netlify function to retrieve it server-side
-        // instead, where metadata is actually returned.
         const res = await fetch('/.netlify/functions/stripe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -83,14 +74,8 @@ function OrderComplete() {
           setStatus('succeeded')
           const meta = result.metadata || {}
 
-          // Mark the pending order as paid, if this purchase came from an existing order
-          // (i.e. an auction win paid via Orders.jsx). Buy Now purchases with no
-          // pre-existing order won't have an orderId and this is skipped.
           if (meta.orderId) {
             try {
-              // paymentIntent.id is stored so a later delivery confirmation can look up
-              // the original charge (via the Netlify function) to fund the artist's payout
-              // transfer against - see Orders.jsx's Confirm Delivery flow.
               await updateDoc(doc(db, 'orders', meta.orderId), {
                 status: 'paid',
                 paymentIntentId: paymentIntentId,
@@ -99,9 +84,6 @@ function OrderComplete() {
               console.error('Could not update order status to paid for orderId', meta.orderId, orderErr)
             }
 
-            // Finalize the listing from 'pending_sale' to 'sold', now that payment has
-            // actually succeeded - only present for Buy Now / offer-accept purchases of
-            // a real listing (see Checkout.jsx's metadata construction).
             if (meta.pieceId) {
               try {
                 await updateDoc(doc(db, 'listings', meta.pieceId), {
@@ -117,8 +99,45 @@ function OrderComplete() {
             console.error('No orderId in payment metadata - order status was not updated. This is expected for direct Buy Now purchases with no pre-existing order.')
           }
 
-          // Fire payment_complete email using metadata attached at intent creation
-          // (location.state from Checkout.jsx does not survive this redirect)
+          // Certificate of Authenticity - generated BEFORE the email, so the link
+          // can be included in it. Reads the order doc directly (rather than
+          // widening Stripe metadata further) since it already has pieceTitle,
+          // artistName, buyerName, and winningBid in one place. Best-effort: any
+          // failure here is logged but never blocks the success screen or the
+          // payment_complete email that follows.
+          let certificateUrl = null
+          if (meta.orderId) {
+            try {
+              const orderSnap = await getDoc(doc(db, 'orders', meta.orderId))
+              if (orderSnap.exists()) {
+                const orderData = orderSnap.data()
+                const certRes = await fetch('/.netlify/functions/certificate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'generate_certificate',
+                    data: {
+                      pieceTitle: orderData.pieceTitle,
+                      artistName: orderData.artistName,
+                      buyerName: orderData.buyerName,
+                      salePrice: orderData.winningBid,
+                      orderId: meta.orderId,
+                    },
+                  }),
+                })
+                const certResult = await certRes.json()
+                if (certRes.ok && certResult.certificateUrl) {
+                  certificateUrl = certResult.certificateUrl
+                  await updateDoc(doc(db, 'orders', meta.orderId), { certificateUrl })
+                } else {
+                  console.error('Certificate generation failed:', certResult.error)
+                }
+              }
+            } catch (certErr) {
+              console.error('Could not generate certificate of authenticity:', certErr)
+            }
+          }
+
           if (meta.buyerEmail && meta.pieceTitle && meta.total) {
             try {
               await fetch('/.netlify/functions/email', {
@@ -130,18 +149,17 @@ function OrderComplete() {
                     buyerEmail: meta.buyerEmail,
                     pieceTitle: meta.pieceTitle,
                     total: meta.total,
+                    certificateUrl,
                   },
                 }),
               })
             } catch (emailErr) {
-              // Don't block the success screen on an email failure
               console.error('payment_complete email failed:', emailErr)
             }
           } else {
             console.error('PaymentIntent succeeded but metadata was incomplete, skipped payment_complete email:', meta)
           }
         } else {
-          // e.g. requires_payment_method (declined), requires_action, canceled
           console.error('PaymentIntent did not succeed, status:', result.status)
           setStatus('failed')
         }
@@ -179,7 +197,6 @@ function OrderComplete() {
     )
   }
 
-  // 'succeeded' or 'unknown' (unknown = reached page directly with no way to verify, so we don't claim failure)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', padding: 'var(--sp-6)', textAlign: 'center' }}>
       <div style={{ fontSize: '4rem', marginBottom: 'var(--sp-4)' }}>🎨</div>

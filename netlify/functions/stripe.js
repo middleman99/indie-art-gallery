@@ -38,13 +38,6 @@ exports.handler = async (event) => {
       };
     }
     if (action === 'get_account_status') {
-      // Real onboarding completion check. create_account only creates a shell
-      // account - it does NOT mean the artist has entered bank details or passed
-      // identity verification. This is the fix for the bug where the UI showed
-      // "You're set up to get paid" the instant Connect Stripe was clicked, before
-      // the artist ever reached Stripe's own onboarding form. payouts_enabled is
-      // the flag that actually matters for whether Stripe will release money to
-      // this account; details_submitted is included as a secondary signal.
       const { accountId } = data;
       if (!accountId) {
         return { statusCode: 400, body: JSON.stringify({ error: 'Missing accountId' }) };
@@ -124,6 +117,43 @@ exports.handler = async (event) => {
       return {
         statusCode: 200,
         body: JSON.stringify({ transferId: transfer.id }),
+      };
+    }
+    if (action === 'create_split_transfer') {
+      const { paymentIntentId, orderId, transfers } = data;
+      if (!paymentIntentId || !orderId || !Array.isArray(transfers) || transfers.length === 0) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'Missing required split transfer fields' }) };
+      }
+      const validTransfers = transfers.filter(t => t.stripeAccountId && t.amount > 0 && t.role);
+      if (validTransfers.length === 0) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'No valid transfers with a positive amount' }) };
+      }
+      const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      const chargeId = intent.latest_charge;
+      if (!chargeId) {
+        return { statusCode: 400, body: JSON.stringify({ error: 'No charge found on this PaymentIntent - cannot release payout' }) };
+      }
+
+      const results = [];
+      for (const t of validTransfers) {
+        const transfer = await stripe.transfers.create(
+          {
+            amount: Math.round(t.amount),
+            currency: 'usd',
+            destination: t.stripeAccountId,
+            source_transaction: chargeId,
+            transfer_group: orderId,
+          },
+          {
+            idempotencyKey: `payout-${orderId}-${t.role}-${t.stripeAccountId}-${Math.round(t.amount)}`,
+          }
+        );
+        results.push({ role: t.role, transferId: transfer.id });
+      }
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ transfers: results }),
       };
     }
     if (action === 'refund_order') {

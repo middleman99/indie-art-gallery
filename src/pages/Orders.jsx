@@ -50,7 +50,7 @@ export default function Orders() {
   const toast = useToast()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [confirmingId, setConfirmingId] = useState(null) // orderId currently being confirmed, prevents double-click
+  const [confirmingId, setConfirmingId] = useState(null)
 
   useEffect(() => {
     if (!user) { setLoading(false); return }
@@ -75,7 +75,7 @@ export default function Orders() {
   }, [user])
 
   async function confirmDelivery(order) {
-    if (confirmingId) return // a confirmation is already in flight, ignore extra clicks
+    if (confirmingId) return
     if (!order.paymentIntentId) {
       toast.error('This order is missing payment info and cannot be released yet. Contact support.')
       return
@@ -83,8 +83,6 @@ export default function Orders() {
 
     setConfirmingId(order.id)
     try {
-      // Look up the artist's CURRENT Stripe account fresh, rather than trusting
-      // anything stored at order-creation time (which never even existed for this field).
       const artistSnap = await getDoc(doc(db, 'users', order.artistId))
       const artistStripeId = artistSnap.exists() ? artistSnap.data().stripeAccountId : null
 
@@ -94,31 +92,94 @@ export default function Orders() {
       }
 
       const fees = calculateFees(order.winningBid)
-      const payoutAmountCents = Math.round(parseFloat(fees.artistPayout) * 100)
+      const totalPayoutCents = Math.round(parseFloat(fees.artistPayout) * 100)
 
-      const res = await fetch('/.netlify/functions/stripe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create_transfer',
-          data: {
-            paymentIntentId: order.paymentIntentId,
-            artistStripeId,
-            amount: payoutAmountCents,
-            orderId: order.id,
-          },
-        }),
-      })
-      const result = await res.json()
-      if (result.error) throw new Error(result.error)
+      const needsSplit = order.originalArtistId && order.originalArtistId !== order.artistId && order.royaltyPercent > 0
 
-      await updateDoc(doc(db, 'orders', order.id), {
+      const updatePayload = {
         status: 'delivered',
-        payoutTransferId: result.transferId,
         deliveryConfirmedAt: serverTimestamp(),
-      })
+      }
 
-      toast.success('Delivery confirmed! Payout released to the artist.')
+      if (needsSplit) {
+        const originalArtistSnap = await getDoc(doc(db, 'users', order.originalArtistId))
+        const originalArtistData = originalArtistSnap.exists() ? originalArtistSnap.data() : null
+        const originalArtistReady = !!(originalArtistData?.stripeAccountId && originalArtistData?.stripeOnboardingComplete)
+
+        if (originalArtistReady) {
+          const royaltyCents = Math.round(totalPayoutCents * (order.royaltyPercent / 100))
+          const sellerCents = totalPayoutCents - royaltyCents
+
+          const res = await fetch('/.netlify/functions/stripe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'create_split_transfer',
+              data: {
+                paymentIntentId: order.paymentIntentId,
+                orderId: order.id,
+                transfers: [
+                  { role: 'royalty', stripeAccountId: originalArtistData.stripeAccountId, amount: royaltyCents },
+                  { role: 'seller', stripeAccountId: artistStripeId, amount: sellerCents },
+                ],
+              },
+            }),
+          })
+          const result = await res.json()
+          if (result.error) throw new Error(result.error)
+
+          const royaltyTransfer = result.transfers?.find(t => t.role === 'royalty')
+          const sellerTransfer = result.transfers?.find(t => t.role === 'seller')
+          updatePayload.payoutTransferId = sellerTransfer?.transferId || null
+          updatePayload.royaltyTransferId = royaltyTransfer?.transferId || null
+          updatePayload.royaltyPaid = true
+
+          toast.success('Delivery confirmed! Payout released, including resale royalty.')
+        } else {
+          const res = await fetch('/.netlify/functions/stripe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'create_transfer',
+              data: {
+                paymentIntentId: order.paymentIntentId,
+                artistStripeId,
+                amount: totalPayoutCents,
+                orderId: order.id,
+              },
+            }),
+          })
+          const result = await res.json()
+          if (result.error) throw new Error(result.error)
+
+          updatePayload.payoutTransferId = result.transferId
+          updatePayload.royaltyForfeited = true
+
+          toast.success("Delivery confirmed! Payout released. (The original artist hasn't set up payouts yet, so the resale royalty could not be paid this time.)")
+        }
+      } else {
+        const res = await fetch('/.netlify/functions/stripe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'create_transfer',
+            data: {
+              paymentIntentId: order.paymentIntentId,
+              artistStripeId,
+              amount: totalPayoutCents,
+              orderId: order.id,
+            },
+          }),
+        })
+        const result = await res.json()
+        if (result.error) throw new Error(result.error)
+
+        updatePayload.payoutTransferId = result.transferId
+
+        toast.success('Delivery confirmed! Payout released to the artist.')
+      }
+
+      await updateDoc(doc(db, 'orders', order.id), updatePayload)
     } catch (err) {
       console.error('Confirm delivery / payout release failed:', err)
       toast.error('Could not confirm delivery. Try again, or contact support if this keeps happening.')
@@ -251,6 +312,8 @@ export default function Orders() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', fontSize: 'var(--text-xs)', color: 'var(--green-ok)' }}>
                       <CheckCircle2 size={12} />
                       Delivery confirmed - payout released to {order.artistName}
+                      {order.royaltyPaid && ' (including resale royalty to the original artist)'}
+                      {order.royaltyForfeited && ' (resale royalty could not be paid - original artist has not set up payouts)'}
                     </div>
                   )}
                 </div>

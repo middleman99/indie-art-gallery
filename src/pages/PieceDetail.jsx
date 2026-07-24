@@ -34,20 +34,11 @@ function calculateFees(price) {
   }
 }
 
-// Whether the current high bid (or lack thereof) has cleared the artist's reserve.
-// A listing with no reservePrice set always returns true, preserving the exact
-// prior behavior for every auction created before this feature existed.
 function isReserveMet(piece) {
   if (!piece.reservePrice) return true
   return (piece.currentBid || 0) >= piece.reservePrice
 }
 
-// Closes an expired, not-yet-closed listing auction. Runs as a transaction so that
-// if multiple visitors happen to load this page around the same time after the
-// deadline, only one of them actually wins the race and closes it / creates the order.
-// This is the "lazy close" mechanism - there's no scheduled backend job (would require
-// Cloud Functions + the Blaze plan, deliberately avoided elsewhere in this project),
-// so closing only happens whenever someone next visits the page after the deadline.
 async function tryCloseExpiredAuction(piece) {
   if (piece.isDemo) return
   if (piece.listingType !== 'auction') return
@@ -55,7 +46,7 @@ async function tryCloseExpiredAuction(piece) {
   if (!piece.auctionEndsAt) return
 
   const endsAt = piece.auctionEndsAt.toDate ? piece.auctionEndsAt.toDate() : new Date(piece.auctionEndsAt)
-  if (new Date() < endsAt) return // not expired yet
+  if (new Date() < endsAt) return
 
   const listingRef = doc(db, 'listings', piece.id)
   const hasWinner = !!piece.currentBidderId
@@ -64,14 +55,9 @@ async function tryCloseExpiredAuction(piece) {
   try {
     await runTransaction(db, async (transaction) => {
       const freshSnap = await transaction.get(listingRef)
-      if (!freshSnap.exists() || freshSnap.data().auctionClosed) return // someone else already closed it
+      if (!freshSnap.exists() || freshSnap.data().auctionClosed) return
       const fresh = freshSnap.data()
 
-      // Reserve check: only actually sell if there's a winning bid AND (no reserve
-      // was set, or the winning bid met it). A reserve that's never reached means
-      // the auction closes with no sale - same as "no bids at all" from the buyer's
-      // perspective, but the piece stays associated with its real highest bid for
-      // the artist's own reference rather than being silently discarded.
       const reserveMet = !fresh.reservePrice || (fresh.currentBid || 0) >= fresh.reservePrice
 
       if (fresh.currentBidderId && reserveMet) {
@@ -90,14 +76,13 @@ async function tryCloseExpiredAuction(piece) {
           buyerName: fresh.currentBidderName || 'Buyer',
           artistId: fresh.artistId,
           artistName: fresh.artistName,
+          originalArtistId: fresh.originalArtistId || fresh.artistId,
+          royaltyPercent: fresh.royaltyPercent || 0,
           status: 'pending_payment',
           paymentDeadline: new Date(Date.now() + 60 * 60 * 1000),
           createdAt: serverTimestamp(),
         })
       } else {
-        // Either no bids, or a reserve that was never met - close bidding without
-        // a sale. Listing stays 'active' rather than 'sold' so the artist can see
-        // it didn't move and decide whether to relist, lower the reserve, etc.
         transaction.update(listingRef, { auctionClosed: true })
       }
     })
@@ -106,18 +91,13 @@ async function tryCloseExpiredAuction(piece) {
   }
 }
 
-// Reverts an abandoned Buy Now / offer-accept purchase back to 'active' once its
-// payment window has genuinely passed, and marks the associated order 'expired'.
-// Runs as a transaction so concurrent viewers can't double-process the same revert,
-// and re-checks the order is still actually unpaid before touching it (in case
-// payment succeeded in the interim).
 async function tryRevertExpiredPendingSale(piece) {
   if (piece.isDemo) return
   if (piece.status !== 'pending_sale') return
   if (!piece.pendingSaleExpiresAt) return
 
   const expiresAt = piece.pendingSaleExpiresAt.toDate ? piece.pendingSaleExpiresAt.toDate() : new Date(piece.pendingSaleExpiresAt)
-  if (new Date() < expiresAt) return // not expired yet
+  if (new Date() < expiresAt) return
 
   const listingRef = doc(db, 'listings', piece.id)
   const orderRef = piece.pendingOrderId ? doc(db, 'orders', piece.pendingOrderId) : null
@@ -125,13 +105,13 @@ async function tryRevertExpiredPendingSale(piece) {
   try {
     await runTransaction(db, async (transaction) => {
       const freshListingSnap = await transaction.get(listingRef)
-      if (!freshListingSnap.exists() || freshListingSnap.data().status !== 'pending_sale') return // already handled
+      if (!freshListingSnap.exists() || freshListingSnap.data().status !== 'pending_sale') return
 
       let orderStillUnpaid = true
       if (orderRef) {
         const freshOrderSnap = await transaction.get(orderRef)
         if (freshOrderSnap.exists() && freshOrderSnap.data().status !== 'pending_payment') {
-          orderStillUnpaid = false // it was paid (or already expired) in the interim - don't touch it
+          orderStillUnpaid = false
         }
       }
 
@@ -293,6 +273,8 @@ export default function PieceDetail() {
           buyerName: profile?.displayName || 'Buyer',
           artistId: piece.artistId,
           artistName: piece.artistName,
+          originalArtistId: piece.originalArtistId || piece.artistId,
+          royaltyPercent: piece.royaltyPercent || 0,
           status: 'pending_payment',
           paymentDeadline,
           createdAt: serverTimestamp(),
@@ -355,6 +337,8 @@ export default function PieceDetail() {
         buyerName: profile?.displayName || 'Buyer',
         artistId: piece.artistId,
         artistName: piece.artistName,
+        originalArtistId: piece.originalArtistId || piece.artistId,
+        royaltyPercent: piece.royaltyPercent || 0,
         amount,
         status: 'pending',
         createdAt: serverTimestamp(),

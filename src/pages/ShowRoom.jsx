@@ -103,9 +103,6 @@ function calcBuyerPremium(bid) {
   return { buyerPremium, total }
 }
 
-// Whether the current high bid has cleared the reserve carried over from the
-// underlying listing (see GoLive.jsx). A show with no reservePrice always
-// returns true, preserving prior behavior for every show before this feature.
 function isReserveMet(show) {
   if (!show?.reservePrice) return true
   return (show.currentBid || 0) >= show.reservePrice
@@ -136,10 +133,6 @@ function BidPanel({ showId, show, user, profile, isHost }) {
       return
     }
 
-    // Reserve check: only actually sell if there's no reserve, or the winning bid
-    // met it. Mirrors the same check in PieceDetail.jsx's tryCloseExpiredAuction,
-    // so a reserve set at listing time (ListArt.jsx) protects the artist here too,
-    // not just in the non-live Store auction flow.
     if (!isReserveMet(show)) {
       try {
         await updateDoc(doc(db, 'shows', showId), { auctionClosed: true })
@@ -175,6 +168,8 @@ function BidPanel({ showId, show, user, profile, isHost }) {
         buyerName: show.currentBidder,
         artistId: show.artistId,
         artistName: show.artistName,
+        originalArtistId: show.originalArtistId || show.artistId,
+        royaltyPercent: show.royaltyPercent || 0,
         status: 'pending_payment',
         paymentDeadline,
         createdAt: serverTimestamp(),

@@ -13,8 +13,6 @@ const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture',
 const CLOUDINARY_CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 const CLOUDINARY_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
 
-// Same upload pattern as ListArt.jsx - duplicated locally rather than shared,
-// to avoid touching the already-working listing upload flow for a small helper.
 async function uploadToCloudinary(file) {
   const formData = new FormData()
   formData.append('file', file)
@@ -35,11 +33,8 @@ const DEMO_PIECES = [
   { id: 'p2', title: 'Neon Dreams', artistName: 'You', currentBid: 120, startingBid: 80, listingType: 'auction' },
 ]
 
-// Guided setup checklist for new artists. Runs its own live Firestore query
-// for listings, rather than trusting the (currently hardcoded/demo) listings
-// section further down this page.
 function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
-  const [hasListing, setHasListing] = useState(null) // null = still checking
+  const [hasListing, setHasListing] = useState(null)
 
   useEffect(() => {
     if (!user?.uid) return
@@ -62,7 +57,6 @@ function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
     return () => { cancelled = true }
   }, [user?.uid])
 
-  // Avoid a flash of "incomplete" before we know the real listing status
   if (hasListing === null) return null
 
   const steps = [
@@ -77,10 +71,6 @@ function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
       key: 'stripe',
       label: 'Connect your bank account',
       sublabel: 'Required to receive payouts',
-      // FIX: was profile?.stripeAccountId, which is set the instant a shell Stripe
-      // account is created - before the artist ever completes real onboarding.
-      // stripeOnboardingComplete is only set true after Stripe confirms
-      // payoutsEnabled + detailsSubmitted (see ConnectStripe.jsx).
       done: !!profile?.stripeOnboardingComplete,
       action: () => navigate('/connect-stripe'),
     },
@@ -94,7 +84,7 @@ function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
   ]
 
   const doneCount = steps.filter(s => s.done).length
-  if (doneCount === steps.length) return null // fully set up, don't clutter the page
+  if (doneCount === steps.length) return null
 
   return (
     <div style={{
@@ -111,7 +101,6 @@ function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
         </span>
       </div>
 
-      {/* Progress bar */}
       <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 999, marginBottom: 'var(--sp-4)', overflow: 'hidden' }}>
         <div style={{
           height: '100%',
@@ -163,10 +152,6 @@ function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
   )
 }
 
-// Artist-facing pending offers - simple accept/decline. Accepting creates a real
-// order (reusing the exact same order shape as auction wins and Buy Now) and
-// auto-declines any other pending offers on the same listing, so the piece can't
-// accidentally end up "sold" to two different buyers.
 function OffersPanel({ user }) {
   const [offers, setOffers] = useState([])
   const [respondingId, setRespondingId] = useState(null)
@@ -203,6 +188,8 @@ function OffersPanel({ user }) {
           buyerName: offer.buyerName,
           artistId: offer.artistId,
           artistName: offer.artistName,
+          originalArtistId: offer.originalArtistId || offer.artistId,
+          royaltyPercent: offer.royaltyPercent || 0,
           status: 'pending_payment',
           paymentDeadline,
           createdAt: serverTimestamp(),
@@ -313,12 +300,6 @@ export default function Profile() {
     loadStats()
   }, [user?.uid])
 
-  // FIX: verify real Stripe onboarding status rather than trusting stripeAccountId's
-  // mere presence. This is the same check as ConnectStripe.jsx, duplicated here
-  // (matching this file's existing pattern of small duplicated helpers) because
-  // Stripe's return_url lands the artist back on THIS page (/profile?stripe=success),
-  // so the "Payouts Active" badge needs to update itself right when they land here,
-  // not only if they happen to revisit /connect-stripe afterward.
   useEffect(() => {
     async function verifyStripeStatus() {
       if (!user?.uid || !profile?.stripeAccountId || profile?.stripeOnboardingComplete) return
@@ -404,7 +385,6 @@ export default function Profile() {
     <div className="page" style={{ paddingTop: 'var(--sp-6)' }}>
       <div className="container">
 
-        {/* AVATAR + ACTIONS ROW */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-4)' }}>
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <div className="avatar avatar-lg" style={{ border: '3px solid var(--charcoal2)', fontSize: 'var(--text-xl)', overflow: 'hidden' }}>
@@ -432,7 +412,6 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* NAME + BADGES */}
         <div style={{ marginBottom: 'var(--sp-4)' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)' }}>{profile?.displayName}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginTop: 'var(--sp-2)', flexWrap: 'wrap' }}>
@@ -440,8 +419,6 @@ export default function Profile() {
               <span className="badge badge-slate" style={{ textTransform: 'capitalize' }}>{profile.role}</span>
             )}
             {isArtist && <span className="badge badge-gold">Artist</span>}
-            {/* FIX: was profile?.stripeAccountId - showed "Payouts Active" the instant
-                the shell account was created, before onboarding actually finished. */}
             {isArtist && profile?.stripeOnboardingComplete && (
               <span className="badge" style={{ background: 'rgba(46,204,113,0.15)', color: 'var(--green-ok)' }}>Payouts Active</span>
             )}
@@ -451,7 +428,6 @@ export default function Profile() {
           )}
         </div>
 
-        {/* STATS */}
         <div style={{ display: 'flex', gap: 'var(--sp-4)', paddingBottom: 'var(--sp-4)', borderBottom: '1px solid rgba(255,248,240,0.08)', marginBottom: 'var(--sp-4)' }}>
           {[[listedCount === null ? '…' : listedCount, 'Listed'], [soldCount === null ? '…' : soldCount, 'Sold'], [profile?.followerCount || 0, 'Followers']].map(([val, label]) => (
             <div key={label} style={{ textAlign: 'center' }}>
@@ -461,7 +437,6 @@ export default function Profile() {
           ))}
         </div>
 
-        {/* ONBOARDING CHECKLIST - only for artists, hides itself once complete */}
         {isArtist && (
           <OnboardingChecklist
             profile={profile}
@@ -473,7 +448,6 @@ export default function Profile() {
 
         {isArtist && <OffersPanel user={user} />}
 
-        {/* EDIT FORM */}
         {editing && (
           <div style={{ marginBottom: 'var(--sp-6)', padding: 'var(--sp-5)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-lg)', border: '1px solid rgba(255,248,240,0.08)' }}>
             <h4 style={{ marginBottom: 'var(--sp-4)' }}>Edit Profile</h4>
@@ -514,7 +488,6 @@ export default function Profile() {
           </div>
         )}
 
-        {/* QUICK ACTIONS — everyone */}
         <div style={{ marginBottom: 'var(--sp-6)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
           {isArtist && (
             <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
@@ -529,7 +502,6 @@ export default function Profile() {
           {isArtist && (
             <button className="btn btn-ghost btn-full" onClick={() => navigate('/connect-stripe')}>
               <CreditCard size={16} />
-              {/* FIX: was profile?.stripeAccountId - see badge fix above for why */}
               {profile?.stripeOnboardingComplete ? 'Manage Payouts' : 'Connect Bank Account to Get Paid'}
             </button>
           )}
@@ -538,7 +510,6 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* MY LISTINGS */}
         {isArtist && (
           <section>
             <div className="section-header">

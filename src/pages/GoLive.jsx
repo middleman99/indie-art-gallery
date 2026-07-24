@@ -97,6 +97,8 @@ export default function GoLive() {
         currentBidder: null,
         currentBidderId: null,
         reservePrice: form.allowBidding && selectedPiece?.reservePrice ? selectedPiece.reservePrice : null,
+        royaltyPercent: form.allowBidding ? (selectedPiece?.royaltyPercent || 0) : 0,
+        originalArtistId: form.allowBidding ? (selectedPiece?.originalArtistId || selectedPiece?.artistId) : null,
         createdAt: serverTimestamp(),
       }
 

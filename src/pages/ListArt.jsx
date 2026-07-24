@@ -48,6 +48,7 @@ export default function ListArt() {
     price: '',
     startingBid: '',
     reservePrice: '',
+    royaltyPercent: '',
     auctionDuration: '24',
     deliveryType: 'physical',
     allowOffers: false,
@@ -96,6 +97,7 @@ export default function ListArt() {
         price: form.listingType === 'fixed' ? parseFloat(form.price) : null,
         startingBid: form.listingType === 'auction' ? parseFloat(form.startingBid) : null,
         reservePrice: form.listingType === 'auction' && form.reservePrice ? parseFloat(form.reservePrice) : null,
+        royaltyPercent: form.royaltyPercent ? parseFloat(form.royaltyPercent) : 0,
         currentBid: null,
         auctionEndsAt: form.listingType === 'auction'
           ? new Date(Date.now() + parseInt(form.auctionDuration, 10) * 60 * 60 * 1000)
@@ -134,7 +136,6 @@ export default function ListArt() {
       <div className="container" style={{ paddingTop: 'var(--sp-6)', maxWidth: 560 }}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)' }}>
 
-          {/* Image Upload */}
           <div>
             <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Artwork Photo *</div>
             {imagePreview ? (
@@ -160,19 +161,16 @@ export default function ListArt() {
             <input ref={fileRef} type="file" accept="image/*" onChange={pickImage} style={{ display: 'none' }} />
           </div>
 
-          {/* Title */}
           <div className="input-group">
             <label className="input-label">Title *</label>
             <input className="input" required placeholder="What's this piece called?" value={form.title} onChange={e => set('title', e.target.value)} />
           </div>
 
-          {/* Description */}
           <div className="input-group">
             <label className="input-label">Description</label>
             <textarea className="input" placeholder="Tell buyers about this piece..." value={form.description} onChange={e => set('description', e.target.value)} />
           </div>
 
-          {/* Art type */}
           <div className="input-group">
             <label className="input-label">Art Type *</label>
             <div className="chips">
@@ -182,7 +180,6 @@ export default function ListArt() {
             </div>
           </div>
 
-          {/* Medium + Year */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
             <div className="input-group">
               <label className="input-label">Medium</label>
@@ -194,13 +191,11 @@ export default function ListArt() {
             </div>
           </div>
 
-          {/* Dimensions */}
           <div className="input-group">
             <label className="input-label">Dimensions (optional)</label>
             <input className="input" placeholder='e.g. 24" x 36"' value={form.dimensions} onChange={e => set('dimensions', e.target.value)} />
           </div>
 
-          {/* Provenance / condition notes - trust signal, shown on PieceDetail */}
           <div className="input-group">
             <label className="input-label">Provenance & Condition (optional)</label>
             <textarea
@@ -211,7 +206,6 @@ export default function ListArt() {
             />
           </div>
 
-          {/* Pre-sale estimate range - catalog-style, purely informational */}
           <div className="input-group">
             <label className="input-label">Estimated Value Range (optional)</label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
@@ -231,7 +225,6 @@ export default function ListArt() {
 
           <div className="divider" />
 
-          {/* Delivery type */}
           <div>
             <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Delivery Type *</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
@@ -250,7 +243,6 @@ export default function ListArt() {
 
           <div className="divider" />
 
-          {/* Listing type */}
           <div>
             <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Listing Type *</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)' }}>
@@ -267,7 +259,6 @@ export default function ListArt() {
             </div>
           </div>
 
-          {/* Price fields */}
           {form.listingType === 'fixed' && (
             <>
               <div className="input-group">
@@ -317,9 +308,29 @@ export default function ListArt() {
             </>
           )}
 
+          <div className="input-group">
+            <label className="input-label">Resale Royalty (optional)</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                className="input"
+                type="number"
+                min="0"
+                max="20"
+                step="1"
+                placeholder="0"
+                value={form.royaltyPercent}
+                onChange={e => set('royaltyPercent', e.target.value)}
+                style={{ paddingRight: 32 }}
+              />
+              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)' }}>%</span>
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', marginTop: 'var(--sp-2)' }}>
+              If this piece is ever resold on Indie Art Gallery, you'll automatically receive this percentage of the resale price - every time it changes hands, not just once.
+            </div>
+          </div>
+
           <div className="divider" />
 
-          {/* Fee transparency */}
           <div style={{ padding: 'var(--sp-4)', background: 'var(--gold-soft)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,215,0,0.2)' }}>
             <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 'var(--sp-2)' }}>Platform Fee</div>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--cream)', lineHeight: 1.6 }}>
@@ -330,7 +341,6 @@ export default function ListArt() {
             </div>
           </div>
 
-          {/* Original work confirmation */}
           <label style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-3)', cursor: 'pointer', fontSize: 'var(--text-sm)', lineHeight: 1.5 }}>
             <input type="checkbox" required checked={form.isOriginal} onChange={e => set('isOriginal', e.target.checked)}
               style={{ width: 18, height: 18, accentColor: 'var(--coral)', cursor: 'pointer', flexShrink: 0, marginTop: 2 }} />

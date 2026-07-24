@@ -1,10 +1,8 @@
 // src/pages/LandingPage.jsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Radio, Gavel, ShieldCheck, ArrowRight } from 'lucide-react'
+import { Radio, Gavel, ShieldCheck, ArrowRight, Tag, ShoppingBag, Repeat, Coins } from 'lucide-react'
 
-// A small, real demo of the live-countdown auction mechanic from ShowRoom.jsx -
-// the actual product hook, not a stock image or generic hero graphic.
 function LiveAuctionDemo() {
   const [secondsLeft, setSecondsLeft] = useState(47)
   const [bid, setBid] = useState(140)
@@ -13,7 +11,7 @@ function LiveAuctionDemo() {
     const interval = setInterval(() => {
       setSecondsLeft(s => {
         if (s <= 1) {
-          setBid(b => b + 5) // simulate a new bid landing as the clock resets
+          setBid(b => b + 5)
           return 60
         }
         return s - 1
@@ -62,6 +60,88 @@ function LiveAuctionDemo() {
   )
 }
 
+const ROYALTY_STAGES = [
+  {
+    icon: Tag,
+    label: 'Artist sets a royalty',
+    actor: 'Maya lists "Midnight Bloom" with a 10% resale royalty',
+    detail: 'One-time setup at listing',
+  },
+  {
+    icon: ShoppingBag,
+    label: 'A buyer purchases it',
+    actor: 'Jordan buys it for $300',
+    detail: 'Maya gets paid, as always',
+  },
+  {
+    icon: Repeat,
+    label: 'Jordan resells it later',
+    actor: 'Jordan relists it for $450',
+    detail: 'The royalty travels with the piece',
+  },
+  {
+    icon: Coins,
+    label: 'Maya gets paid again',
+    actor: 'automatically, no chasing anyone down',
+    detail: '+$45 royalty, released with the resale payout',
+  },
+]
+
+function RoyaltyFlowDemo() {
+  const [stage, setStage] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => setStage(s => (s + 1) % ROYALTY_STAGES.length), 2600)
+    return () => clearInterval(interval)
+  }, [])
+
+  const current = ROYALTY_STAGES[stage]
+  const Icon = current.icon
+
+  return (
+    <div style={{
+      background: 'var(--charcoal2, #16213E)',
+      border: '1px solid rgba(255,215,0,0.25)',
+      borderRadius: 'var(--r-lg)',
+      padding: 'var(--sp-6)',
+      maxWidth: 380,
+      width: '100%',
+      margin: '0 auto',
+      boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+      textAlign: 'center',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginBottom: 'var(--sp-5)' }}>
+        {ROYALTY_STAGES.map((_, i) => (
+          <span
+            key={i}
+            style={{
+              width: i === stage ? 20 : 6,
+              height: 6,
+              borderRadius: 999,
+              background: i === stage ? 'var(--gold)' : 'rgba(255,255,255,0.15)',
+              transition: 'all 0.3s ease',
+            }}
+          />
+        ))}
+      </div>
+
+      <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,215,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--sp-4)' }}>
+        <Icon size={26} color="var(--gold)" />
+      </div>
+
+      <div style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', color: 'var(--cream)', marginBottom: 'var(--sp-2)' }}>
+        {current.label}
+      </div>
+      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--slate)', marginBottom: 'var(--sp-3)' }}>
+        {current.actor}
+      </div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', color: 'var(--gold)', fontWeight: 700 }}>
+        {current.detail}
+      </div>
+    </div>
+  )
+}
+
 const STEPS = [
   {
     n: '01',
@@ -86,7 +166,6 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: '100dvh', background: 'var(--charcoal)', color: 'var(--cream)' }}>
 
-      {/* HEADER */}
       <header style={{
         display: 'flex',
         alignItems: 'center',
@@ -103,7 +182,6 @@ export default function LandingPage() {
         </button>
       </header>
 
-      {/* HERO */}
       <section style={{
         maxWidth: 1100,
         margin: '0 auto',
@@ -147,7 +225,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--sp-10) var(--sp-5)' }}>
         <div style={{ textAlign: 'center', marginBottom: 'var(--sp-8)' }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)' }}>How it works</h2>
@@ -175,7 +252,30 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* DUAL CTA */}
+      <section style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--sp-10) var(--sp-5)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap-reverse', alignItems: 'center', gap: 'var(--sp-10)' }}>
+          <div style={{ flex: '1 1 340px', display: 'flex', justifyContent: 'center', minWidth: 280 }}>
+            <RoyaltyFlowDemo />
+          </div>
+          <div style={{ flex: '1 1 420px', minWidth: 280 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--sp-3)' }}>
+              <ShieldCheck size={20} color="var(--gold)" />
+              <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold)' }}>
+                Resale Royalties
+              </span>
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--sp-4)' }}>
+              Artists get paid, again and again.
+            </h2>
+            <p style={{ color: 'var(--slate)', fontSize: 'var(--text-md, 1rem)', lineHeight: 1.7 }}>
+              Set a resale royalty when you list. If a buyer ever resells your piece on Indie Art Gallery,
+              you automatically receive your cut - every time it changes hands, not just the first sale.
+              No contracts, no invoices, no chasing anyone down.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--sp-8) var(--sp-5) var(--sp-10)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--sp-5)' }}>
           <div style={{
@@ -218,7 +318,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer style={{
         maxWidth: 1100,
         margin: '0 auto',

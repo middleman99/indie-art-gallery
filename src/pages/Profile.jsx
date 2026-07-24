@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { doc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
 import { db } from '../firebase'
-import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight } from 'lucide-react'
+import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight, ShieldCheck } from 'lucide-react'
 import ArtCard from '../components/ArtCard'
 
 const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print', 'Installation', 'Other']
@@ -507,6 +507,9 @@ export default function Profile() {
           )}
           <button className="btn btn-ghost btn-full" onClick={() => navigate('/orders')}>
             <Package size={16} /> My Orders
+          </button>
+          <button className="btn btn-ghost btn-full" onClick={() => navigate('/collection')}>
+            <ShieldCheck size={16} /> My Collection
           </button>
         </div>
 

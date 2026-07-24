@@ -422,6 +422,13 @@ export default function PieceDetail() {
           </div>
         )}
 
+        {piece.isResale && piece.royaltyPercent > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 'var(--sp-5)', padding: 'var(--sp-3)', background: 'rgba(255,215,0,0.06)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,215,0,0.15)', fontSize: 'var(--text-xs)', color: 'var(--gold)' }}>
+            <ShieldCheck size={13} />
+            Resale — a portion of this sale supports {piece.originalArtistName || 'the original artist'}
+          </div>
+        )}
+
         <div className="divider" />
 
         <div style={{ marginBottom: 'var(--sp-5)' }}>

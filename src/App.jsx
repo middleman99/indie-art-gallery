@@ -23,6 +23,8 @@ import Checkout from './pages/Checkout'
 import GoLive from './pages/GoLive'
 import ShowRoom from './pages/ShowRoom'
 import Orders from './pages/Orders'
+import Collection from './pages/Collection'
+import ResaleListing from './pages/ResaleListing'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -99,12 +101,6 @@ function OrderComplete() {
             console.error('No orderId in payment metadata - order status was not updated. This is expected for direct Buy Now purchases with no pre-existing order.')
           }
 
-          // Certificate of Authenticity - generated BEFORE the email, so the link
-          // can be included in it. Reads the order doc directly (rather than
-          // widening Stripe metadata further) since it already has pieceTitle,
-          // artistName, buyerName, and winningBid in one place. Best-effort: any
-          // failure here is logged but never blocks the success screen or the
-          // payment_complete email that follows.
           let certificateUrl = null
           if (meta.orderId) {
             try {
@@ -241,6 +237,8 @@ export default function App() {
         <Route path="/go-live"         element={<ArtistRoute><GoLive /></ArtistRoute>} />
         <Route path="/show/:id"        element={<ShowRoom />} />
         <Route path="/orders"          element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+        <Route path="/collection"      element={<ProtectedRoute><Collection /></ProtectedRoute>} />
+        <Route path="/relist/:orderId" element={<ProtectedRoute><ResaleListing /></ProtectedRoute>} />
         <Route path="*"                element={<Navigate to="/" replace />} />
       </Routes>
       {!hideNav && <BottomNav />}

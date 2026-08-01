@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
-import { doc, setDoc, updateDoc, collection, query, where, getDocs, onSnapshot, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
+import { doc, setDoc, updateDoc, collection, query, where, orderBy, getDocs, onSnapshot, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
 import { db } from '../firebase'
 import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight, ShieldCheck } from 'lucide-react'
 import ArtCard from '../components/ArtCard'
@@ -27,11 +27,6 @@ async function uploadToCloudinary(file) {
   if (data.error) throw new Error(data.error.message)
   return data.secure_url
 }
-
-const DEMO_PIECES = [
-  { id: 'p1', title: 'Golden Hour', artistName: 'You', price: 280, listingType: 'fixed' },
-  { id: 'p2', title: 'Neon Dreams', artistName: 'You', currentBid: 120, startingBid: 80, listingType: 'auction' },
-]
 
 function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
   const [hasListing, setHasListing] = useState(null)
@@ -268,6 +263,8 @@ export default function Profile() {
   const avatarFileRef = useRef()
   const [listedCount, setListedCount] = useState(null)
   const [soldCount, setSoldCount] = useState(null)
+  const [myListings, setMyListings] = useState([])
+  const [myListingsLoading, setMyListingsLoading] = useState(true)
   const [editForm, setEditForm] = useState({
     bio: profile?.bio || '',
     instagram: profile?.instagram || '',
@@ -298,6 +295,32 @@ export default function Profile() {
       }
     }
     loadStats()
+  }, [user?.uid])
+
+  useEffect(() => {
+    if (!user?.uid) { setMyListingsLoading(false); return }
+    let cancelled = false
+    async function loadMyListings() {
+      setMyListingsLoading(true)
+      try {
+        const snap = await getDocs(
+          query(
+            collection(db, 'listings'),
+            where('artistId', '==', user.uid),
+            where('status', '==', 'active'),
+            orderBy('createdAt', 'desc')
+          )
+        )
+        if (!cancelled) setMyListings(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      } catch (e) {
+        console.error('Could not load your listings:', e)
+        if (!cancelled) setMyListings([])
+      } finally {
+        if (!cancelled) setMyListingsLoading(false)
+      }
+    }
+    loadMyListings()
+    return () => { cancelled = true }
   }, [user?.uid])
 
   useEffect(() => {
@@ -519,9 +542,11 @@ export default function Profile() {
               <span className="section-title">My Listings</span>
               <a href="/list" className="section-link" style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Plus size={12} /> Add</a>
             </div>
-            {DEMO_PIECES.length > 0 ? (
+            {myListingsLoading ? (
+              <div style={{ padding: 'var(--sp-10) 0', textAlign: 'center', color: 'var(--slate)' }}>Loading your listings...</div>
+            ) : myListings.length > 0 ? (
               <div className="art-grid">
-                {DEMO_PIECES.map(p => <ArtCard key={p.id} piece={p} />)}
+                {myListings.map(p => <ArtCard key={p.id} piece={p} />)}
               </div>
             ) : (
               <div style={{ padding: 'var(--sp-10) 0', textAlign: 'center', color: 'var(--slate)' }}>

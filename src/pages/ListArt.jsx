@@ -121,7 +121,7 @@ export default function ListArt() {
       toast.success('Listing published!')
       navigate(`/piece/${docRef.id}`)
     } catch (err) {
-      toast.error('Could not publish. Try again.')
+      toast.error(err.message || 'Could not publish. Try again.')
       console.error(err)
     } finally {
       setSaving(false)

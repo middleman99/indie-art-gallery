@@ -265,6 +265,30 @@ export default function Profile() {
   const [soldCount, setSoldCount] = useState(null)
   const [myListings, setMyListings] = useState([])
   const [myListingsLoading, setMyListingsLoading] = useState(true)
+  const [removingId, setRemovingId] = useState(null)
+
+  async function handleRemoveListing(piece) {
+    const hasBid = piece.listingType === 'auction' && !!piece.currentBidderId
+    const warning = hasBid
+      ? `"${piece.title}" has an active bid from a buyer. Removing it will cancel that bid and take the listing down. This cannot be undone. Continue?`
+      : `Remove "${piece.title}"? Buyers will no longer be able to view or purchase it. This cannot be undone.`
+    if (!window.confirm(warning)) return
+
+    setRemovingId(piece.id)
+    try {
+      await updateDoc(doc(db, 'listings', piece.id), {
+        status: 'removed',
+        removedAt: serverTimestamp(),
+      })
+      setMyListings(prev => prev.filter(l => l.id !== piece.id))
+      toast.success('Listing removed.')
+    } catch (err) {
+      console.error('Could not remove listing:', err)
+      toast.error(err.message || 'Could not remove listing. Try again.')
+    } finally {
+      setRemovingId(null)
+    }
+  }
   const [editForm, setEditForm] = useState({
     bio: profile?.bio || '',
     instagram: profile?.instagram || '',
@@ -546,7 +570,9 @@ export default function Profile() {
               <div style={{ padding: 'var(--sp-10) 0', textAlign: 'center', color: 'var(--slate)' }}>Loading your listings...</div>
             ) : myListings.length > 0 ? (
               <div className="art-grid">
-                {myListings.map(p => <ArtCard key={p.id} piece={p} />)}
+                {myListings.map(p => (
+                  <ArtCard key={p.id} piece={p} onRemove={handleRemoveListing} removing={removingId === p.id} />
+                ))}
               </div>
             ) : (
               <div style={{ padding: 'var(--sp-10) 0', textAlign: 'center', color: 'var(--slate)' }}>

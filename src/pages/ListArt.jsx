@@ -13,19 +13,73 @@ const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture',
 const CLOUDINARY_CLOUD = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
 const CLOUDINARY_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
 
-async function uploadToCloudinary(file) {
+async function uploadToCloudinary(file, attempt = 1) {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('upload_preset', CLOUDINARY_PRESET)
   formData.append('folder', 'indie-art-gallery')
 
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
-    method: 'POST',
-    body: formData,
+  try {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    })
+    const data = await res.json()
+    if (data.error) throw new Error(data.error.message)
+    return data.secure_url
+  } catch (err) {
+    // One automatic retry — mobile connections can drop mid-upload ("Failed to fetch").
+    if (attempt < 2) {
+      await new Promise(resolve => setTimeout(resolve, 1200))
+      return uploadToCloudinary(file, attempt + 1)
+    }
+    throw err
+  }
+}
+
+// Resize + re-encode in-browser before upload so large phone photos finish fast
+// and survive weak/unstable mobile connections instead of timing out mid-transfer.
+function compressImage(file, maxDimension = 2000, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+      let { width, height } = img
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width > height) {
+          height = Math.round(height * (maxDimension / width))
+          width = maxDimension
+        } else {
+          width = Math.round(width * (maxDimension / height))
+          height = maxDimension
+        }
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+
+      canvas.toBlob(
+        blob => {
+          if (!blob) { reject(new Error('Could not process image.')); return }
+          resolve(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }))
+        },
+        'image/jpeg',
+        quality
+      )
+    }
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Could not read image file.'))
+    }
+
+    img.src = objectUrl
   })
-  const data = await res.json()
-  if (data.error) throw new Error(data.error.message)
-  return data.secure_url
 }
 
 export default function ListArt() {
@@ -62,12 +116,20 @@ export default function ListArt() {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
-  function pickImage(e) {
+  async function pickImage(e) {
     const file = e.target.files[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) { toast.error('Image must be under 10MB.'); return }
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
+
+    try {
+      const compressed = await compressImage(file)
+      setImageFile(compressed)
+      setImagePreview(URL.createObjectURL(compressed))
+    } catch (err) {
+      console.error('Compression failed, using original file:', err)
+      setImageFile(file)
+      setImagePreview(URL.createObjectURL(file))
+    }
   }
 
   async function handleSubmit(e) {

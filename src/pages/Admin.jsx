@@ -168,7 +168,7 @@ export default function Admin() {
 
     setRefundingId(order.id)
     try {
-      const res = await fetch('/.netlify/functions/stripe', {
+      const res = await fetch('/api/stripe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

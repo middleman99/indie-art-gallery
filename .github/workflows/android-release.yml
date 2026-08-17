@@ -1,0 +1,101 @@
+name: Build signed Android release
+
+# Builds the Capacitor Android app and produces a signed .aab (for Play
+# Console upload) and a signed .apk (for sideloading/manual testing).
+#
+# Runs on GitHub's runners because they have full internet access to
+# Google's Android SDK/Maven servers - this repo's own dev sandbox does not,
+# so this workflow is the actual place the release artifacts get built.
+#
+# Required repo secrets (Settings -> Secrets and variables -> Actions):
+#   ANDROID_KEYSTORE_BASE64   - `base64 -w0 indie-art-gallery-upload.jks`
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.js'
+      - 'capacitor.config.ts'
+      - '.github/workflows/android-release.yml'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install web app dependencies
+        run: npm ci
+
+      # This build's dist/ output only ships as an inert fallback inside the
+      # APK/AAB - capacitor.config.ts sets server.url to the live site, so
+      # the app actually loads indieartgallery.live at runtime. That means
+      # this step doesn't need real Firebase/Stripe/LiveKit secrets to
+      # produce a working app; no VITE_ env vars are required here.
+      - name: Build web app
+        run: npm run build
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Decode signing keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "${{ runner.temp }}/upload-keystore.jks"
+
+      - name: Build signed AAB (for Play Console)
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/upload-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease --no-daemon
+
+      - name: Build signed APK (for sideload testing)
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/upload-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Remove decoded keystore
+        if: always()
+        run: rm -f "${{ runner.temp }}/upload-keystore.jks"
+
+      - name: Upload AAB (Play Console upload file)
+        uses: actions/upload-artifact@v4
+        with:
+          name: indie-art-gallery-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload APK (sideload/manual testing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: indie-art-gallery-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk

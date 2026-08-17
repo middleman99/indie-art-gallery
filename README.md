@@ -56,12 +56,32 @@ cp .env.example .env.local
 npm run dev
 ```
 
-### 5. Deploy to Netlify
+### 5. Deploy to Cloudflare Workers
+As of Aug 2026 this project deploys to Cloudflare Workers (static assets +
+the `/api/*` backend in `worker/`), not Netlify. Netlify's `netlify.toml`
+and `netlify/functions/` are kept temporarily as a fallback during cutover -
+safe to delete once the Cloudflare deploy is confirmed working in production.
+
 ```bash
-npm run build
-# Drag the `dist/` folder to Netlify, or connect your GitHub repo
-# Add all VITE_ env vars in Netlify → Site Settings → Environment Variables
+# One-time: set the backend secrets (see worker/index.js for what each does)
+npx wrangler secret put STRIPE_SECRET_KEY
+npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put LIVEKIT_API_KEY
+npx wrangler secret put LIVEKIT_API_SECRET
+npx wrangler secret put VITE_CLOUDINARY_CLOUD_NAME
+npx wrangler secret put VITE_CLOUDINARY_UPLOAD_PRESET
+
+# Build + deploy
+npm run cf:deploy
 ```
+
+`VITE_` env vars still need to go in `.env.local` for local builds (see
+step 3) - Vite inlines those at build time for the frontend. The same
+Cloudinary values are *also* needed as Worker secrets above, since
+`worker/certificate.js` calls Cloudinary server-side too.
+
+Every push to `main` also auto-deploys via `.github/workflows/cloudflare-deploy.yml`
+(needs a `CLOUDFLARE_API_TOKEN` repo secret).
 
 ---
 

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Black / Metallic Gold / White brand theme -->
+    <color name="colorPrimary">#D4AF37</color>
+    <color name="colorPrimaryDark">#0A0A0A</color>
+    <color name="colorAccent">#F0D264</color>
+    <color name="background">#0A0A0A</color>
+</resources>

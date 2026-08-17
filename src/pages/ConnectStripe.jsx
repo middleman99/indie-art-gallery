@@ -30,7 +30,7 @@ export default function ConnectStripe() {
       if (!profile?.stripeAccountId || profile?.stripeOnboardingComplete) return
       setCheckingStatus(true)
       try {
-        const res = await fetch('/.netlify/functions/stripe', {
+        const res = await fetch('/api/stripe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -58,7 +58,7 @@ export default function ConnectStripe() {
       let accountId = profile?.stripeAccountId
 
       if (!accountId) {
-        const res = await fetch('/.netlify/functions/stripe', {
+        const res = await fetch('/api/stripe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'create_account', data: {} }),
@@ -79,7 +79,7 @@ export default function ConnectStripe() {
         await refreshProfile()
       }
 
-      const res2 = await fetch('/.netlify/functions/stripe', {
+      const res2 = await fetch('/api/stripe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

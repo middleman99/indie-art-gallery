@@ -194,7 +194,7 @@ function BidPanel({ showId, show, user, profile, isHost }) {
         const buyerEmail = buyerSnap.exists() ? buyerSnap.data().email : null
         if (buyerEmail) {
           const { buyerPremium, total } = calcBuyerPremium(show.currentBid)
-          await fetch('/.netlify/functions/email', {
+          await fetch('/api/email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -461,7 +461,7 @@ export default function ShowRoom() {
     if (!show) return
     async function getToken() {
       try {
-        const res = await fetch('/.netlify/functions/livekit', {
+        const res = await fetch('/api/livekit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

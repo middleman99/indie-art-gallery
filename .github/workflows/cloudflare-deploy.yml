@@ -1,0 +1,49 @@
+name: Deploy to Cloudflare Workers
+
+# Builds the web app and deploys it (static assets + the /api/* Worker) to
+# Cloudflare on every push to main. This is what keeps indieartgallery.live
+# up to date once the domain has been cut over from Netlify.
+#
+# Required repo secret:
+#   CLOUDFLARE_API_TOKEN - same token used for the initial migration
+#     (Account: Workers Scripts Edit, Account Settings Read;
+#      Zone: Zone Edit, DNS Edit)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'worker/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.js'
+      - 'wrangler.toml'
+      - '.github/workflows/cloudflare-deploy.yml'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

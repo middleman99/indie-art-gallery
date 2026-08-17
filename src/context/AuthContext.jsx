@@ -7,7 +7,7 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from 'firebase/auth'
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { auth, db } from '../firebase'
 const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
@@ -74,6 +74,21 @@ export function AuthProvider({ children }) {
     await signOut(auth)
     setProfile(null)
   }
+  // Google Play requires an in-app path for users to request deletion of
+  // their account and data (in addition to the web path at /delete-account).
+  // We flag the account for deletion rather than hard-deleting immediately,
+  // since order/listing records tied to completed sales need to be retained
+  // for a period for tax/accounting purposes (see Privacy Policy - Data
+  // Retention) before being purged.
+  async function requestAccountDeletion() {
+    if (!user) return
+    await updateDoc(doc(db, 'users', user.uid), {
+      pendingDeletion: true,
+      deletionRequestedAt: serverTimestamp(),
+    })
+    await signOut(auth)
+    setProfile(null)
+  }
   async function refreshProfile() {
     if (!user) return
     const snap = await getDoc(doc(db, 'users', user.uid))
@@ -82,7 +97,7 @@ export function AuthProvider({ children }) {
   const isArtist = profile?.role === 'artist' || profile?.role === 'both'
   const isAdmin  = profile?.email?.toLowerCase() === 'manager@middlemanmerchants.com'
   return (
-    <AuthContext.Provider value={{ user, profile, loading, isArtist, isAdmin, signup, login, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, isArtist, isAdmin, signup, login, logout, refreshProfile, requestAccountDeletion }}>
       {children}
     </AuthContext.Provider>
   )

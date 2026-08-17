@@ -110,7 +110,7 @@ export default function Orders() {
           const royaltyCents = Math.round(totalPayoutCents * (order.royaltyPercent / 100))
           const sellerCents = totalPayoutCents - royaltyCents
 
-          const res = await fetch('/.netlify/functions/stripe', {
+          const res = await fetch('/api/stripe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -136,7 +136,7 @@ export default function Orders() {
 
           toast.success('Delivery confirmed! Payout released, including resale royalty.')
         } else {
-          const res = await fetch('/.netlify/functions/stripe', {
+          const res = await fetch('/api/stripe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -158,7 +158,7 @@ export default function Orders() {
           toast.success("Delivery confirmed! Payout released. (The original artist hasn't set up payouts yet, so the resale royalty could not be paid this time.)")
         }
       } else {
-        const res = await fetch('/.netlify/functions/stripe', {
+        const res = await fetch('/api/stripe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

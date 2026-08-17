@@ -1,0 +1,22 @@
+name = "indie-art-gallery"
+main = "worker/index.js"
+compatibility_date = "2026-08-17"
+compatibility_flags = ["nodejs_compat"]
+
+# Static site (Vite build output). SPA fallback so client-side routes like
+# /piece/abc123 serve index.html instead of a 404.
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+binding = "ASSETS"
+# /api/* is handled by the Worker itself (see worker/index.js) before assets
+# are ever consulted; everything else goes straight to static assets.
+run_worker_first = ["/api/*"]
+
+# Secrets (set via `wrangler secret put <NAME>`, never in this file):
+#   STRIPE_SECRET_KEY
+#   RESEND_API_KEY
+#   LIVEKIT_API_KEY
+#   LIVEKIT_API_SECRET
+#   VITE_CLOUDINARY_CLOUD_NAME
+#   VITE_CLOUDINARY_UPLOAD_PRESET

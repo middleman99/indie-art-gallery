@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { doc, setDoc, updateDoc, collection, query, where, orderBy, getDocs, onSnapshot, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
 import { db } from '../firebase'
-import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight, ShieldCheck } from 'lucide-react'
+import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight, ShieldCheck, AlertTriangle } from 'lucide-react'
 import ArtCard from '../components/ArtCard'
 
 const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print', 'Installation', 'Other']
@@ -254,9 +254,27 @@ function OffersPanel({ user }) {
 }
 
 export default function Profile() {
-  const { user, profile, isArtist, logout, refreshProfile } = useAuth()
+  const { user, profile, isArtist, logout, refreshProfile, requestAccountDeletion } = useAuth()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
   const navigate = useNavigate()
   const toast = useToast()
+
+  async function handleDeleteAccount() {
+    setDeletingAccount(true)
+    try {
+      await requestAccountDeletion()
+      toast.success('Account deletion requested. You have been signed out.')
+      navigate('/')
+    } catch (err) {
+      console.error('Account deletion request failed:', err)
+      toast.error('Could not process deletion request. Try again or email manager@middlemanmerchants.com.')
+    } finally {
+      setDeletingAccount(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -351,7 +369,7 @@ export default function Profile() {
     async function verifyStripeStatus() {
       if (!user?.uid || !profile?.stripeAccountId || profile?.stripeOnboardingComplete) return
       try {
-        const res = await fetch('/.netlify/functions/stripe', {
+        const res = await fetch('/api/stripe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -584,6 +602,51 @@ export default function Profile() {
               </div>
             )}
           </section>
+        )}
+
+        <div className="divider" />
+
+        <section>
+          <div className="section-header">
+            <span className="section-title" style={{ color: 'var(--red-err)' }}>Danger Zone</span>
+          </div>
+          <button
+            className="btn btn-ghost btn-full"
+            style={{ borderColor: 'rgba(255,59,59,0.35)', color: 'var(--red-err)' }}
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            <AlertTriangle size={16} /> Delete Account
+          </button>
+        </section>
+
+        {showDeleteConfirm && (
+          <div className="overlay" onClick={() => !deletingAccount && setShowDeleteConfirm(false)}>
+            <div className="sheet" onClick={e => e.stopPropagation()}>
+              <div className="sheet-handle" />
+              <h4 style={{ marginBottom: 'var(--sp-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertTriangle size={18} color="var(--red-err)" /> Delete your account?
+              </h4>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--slate)', lineHeight: 1.6, marginBottom: 'var(--sp-3)' }}>
+                This signs you out immediately and permanently deletes your profile, listings, and
+                personal data. Records tied to completed orders are kept only as long as required
+                for tax and accounting purposes, per our{' '}
+                <a href="/privacy" style={{ color: 'var(--coral)' }}>Privacy Policy</a>. This cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
+                <button className="btn btn-ghost btn-full" onClick={() => setShowDeleteConfirm(false)} disabled={deletingAccount}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-full"
+                  style={{ background: 'var(--red-err)', color: 'var(--white)' }}
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount}
+                >
+                  {deletingAccount ? 'Deleting...' : 'Yes, Delete My Account'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -6,6 +6,8 @@ import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import TopBar from '../components/TopBar'
+import DigitalWebOnlyNotice from '../components/DigitalWebOnlyNotice'
+import { isDigitalPurchaseBlocked } from '../utils/platform'
 import { Heart, Share2, Package, Monitor, Gavel, ShoppingBag, Clock, Trophy, ShieldCheck, Lock } from 'lucide-react'
 
 function calculateFees(price) {
@@ -241,6 +243,7 @@ export default function PieceDetail() {
 
   async function handleBuyNow() {
     if (!user) { navigate('/auth'); return }
+    if (isDigitalPurchaseBlocked(piece)) { toast.error('Digital pieces are purchased on the website.'); return }
     if (piece.isDemo) {
       toast.error('This is a demo piece and is not available for purchase.')
       return
@@ -292,6 +295,7 @@ export default function PieceDetail() {
 
   async function handlePlaceBid() {
     if (!user) { navigate('/auth'); return }
+    if (isDigitalPurchaseBlocked(piece)) { toast.error('Digital pieces are purchased on the website.'); return }
     if (piece.isDemo) { toast.error('Demo piece - bidding is not available.'); return }
     if (auctionEnded) { toast.error('This auction has ended.'); return }
 
@@ -322,6 +326,7 @@ export default function PieceDetail() {
 
   async function handleOffer() {
     if (!user) { navigate('/auth'); return }
+    if (isDigitalPurchaseBlocked(piece)) { toast.error('Digital pieces are purchased on the website.'); return }
     if (piece.isDemo) { toast.error('Demo piece - offers are not available.'); return }
     const amount = parseFloat(offerAmount)
     if (!amount || amount <= 0) {
@@ -499,22 +504,26 @@ export default function PieceDetail() {
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--cream)' }}>${fees.total}</span>
               </div>
 
-              <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
-                <div style={{ position: 'relative', flex: 1 }}>
-                  <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)' }}>$</span>
-                  <input
-                    className="input"
-                    type="number"
-                    placeholder={`${(piece.currentBid || piece.startingBid) + 5}`}
-                    value={bidAmount}
-                    onChange={e => setBidAmount(e.target.value)}
-                    style={{ paddingLeft: 28 }}
-                  />
+              {isDigitalPurchaseBlocked(piece) ? (
+                <DigitalWebOnlyNotice pieceId={piece.id} />
+              ) : (
+                <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--slate)', fontFamily: 'var(--font-mono)' }}>$</span>
+                    <input
+                      className="input"
+                      type="number"
+                      placeholder={`${(piece.currentBid || piece.startingBid) + 5}`}
+                      value={bidAmount}
+                      onChange={e => setBidAmount(e.target.value)}
+                      style={{ paddingLeft: 28 }}
+                    />
+                  </div>
+                  <button className="btn btn-gold" onClick={handlePlaceBid} disabled={placingBid}>
+                    <Gavel size={16} /> {placingBid ? '...' : 'Bid'}
+                  </button>
                 </div>
-                <button className="btn btn-gold" onClick={handlePlaceBid} disabled={placingBid}>
-                  <Gavel size={16} /> {placingBid ? '...' : 'Bid'}
-                </button>
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -527,6 +536,9 @@ export default function PieceDetail() {
         )}
 
         {piece.listingType === 'fixed' && (
+          isDigitalPurchaseBlocked(piece) ? (
+            <DigitalWebOnlyNotice pieceId={piece.id} />
+          ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
             <button className="btn btn-primary btn-lg btn-full" onClick={handleBuyNow} disabled={buyingNow}>
               <ShoppingBag size={18} /> {buyingNow ? 'Starting checkout...' : `Buy Now — $${fees.total}`}
@@ -537,6 +549,7 @@ export default function PieceDetail() {
               </button>
             )}
           </div>
+          )
         )}
 
         {showOffer && (

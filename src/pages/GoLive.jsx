@@ -22,7 +22,7 @@ async function notifyFollowersGoingLive(artistId, artistName, showTitle) {
       .map(d => d.data().email)
       .filter(Boolean)
       .map(followerEmail =>
-        fetch('/.netlify/functions/email', {
+        fetch('/api/email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -6,6 +6,8 @@ import { useToast } from '../context/ToastContext'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import TopBar from '../components/TopBar'
+import DigitalWebOnlyNotice from '../components/DigitalWebOnlyNotice'
+import { isDigitalPurchaseBlocked } from '../utils/platform'
 import { Clock, ShieldCheck } from 'lucide-react'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
@@ -139,6 +141,7 @@ export default function Checkout() {
   useEffect(() => {
     if (!user) { navigate('/auth'); return }
     if (!piece) { navigate('/store'); return }
+    if (isDigitalPurchaseBlocked(piece)) { setLoading(false); return }
 
     async function createIntent() {
       try {
@@ -153,7 +156,7 @@ export default function Checkout() {
         // exactly when piece.id corresponds to a real Firestore listings document.
         if (piece.id && !piece.isDemo) metadata.pieceId = piece.id
 
-        const res = await fetch('/.netlify/functions/stripe', {
+        const res = await fetch('/api/stripe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -190,9 +193,9 @@ export default function Checkout() {
   const appearance = {
     theme: 'night',
     variables: {
-      colorPrimary: '#FF4D4D',
-      colorBackground: '#16213E',
-      colorText: '#FFF8F0',
+      colorPrimary: '#D4AF37',
+      colorBackground: '#141414',
+      colorText: '#F5F5F0',
       colorDanger: '#FF3B3B',
       fontFamily: 'DM Sans, system-ui, sans-serif',
       borderRadius: '12px',
@@ -208,7 +211,9 @@ export default function Checkout() {
           Complete Purchase
         </h2>
 
-        {loading ? (
+        {isDigitalPurchaseBlocked(piece) ? (
+          <DigitalWebOnlyNotice pieceId={piece.id} />
+        ) : loading ? (
           <div style={{ textAlign: 'center', padding: 'var(--sp-10)', color: 'var(--slate)' }}>
             Setting up payment...
           </div>

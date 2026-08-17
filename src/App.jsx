@@ -11,6 +11,7 @@ import ArtistProfile from './pages/ArtistProfile'
 import Search from './pages/Search'
 import TermsOfService from './pages/TermsOfService'
 import PrivacyPolicy from './pages/PrivacyPolicy'
+import DeleteAccount from './pages/DeleteAccount'
 import Live from './pages/Live'
 import Store from './pages/Store'
 import Profile from './pages/Profile'
@@ -56,7 +57,7 @@ function OrderComplete() {
       }
 
       try {
-        const res = await fetch('/.netlify/functions/stripe', {
+        const res = await fetch('/api/stripe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -107,7 +108,7 @@ function OrderComplete() {
               const orderSnap = await getDoc(doc(db, 'orders', meta.orderId))
               if (orderSnap.exists()) {
                 const orderData = orderSnap.data()
-                const certRes = await fetch('/.netlify/functions/certificate', {
+                const certRes = await fetch('/api/certificate', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -136,7 +137,7 @@ function OrderComplete() {
 
           if (meta.buyerEmail && meta.pieceTitle && meta.total) {
             try {
-              await fetch('/.netlify/functions/email', {
+              await fetch('/api/email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -232,6 +233,7 @@ export default function App() {
         <Route path="/search"          element={<Search />} />
         <Route path="/terms"           element={<TermsOfService />} />
         <Route path="/privacy"         element={<PrivacyPolicy />} />
+        <Route path="/delete-account"  element={<DeleteAccount />} />
         <Route path="/checkout"        element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         <Route path="/order-complete"  element={<OrderComplete />} />
         <Route path="/go-live"         element={<ArtistRoute><GoLive /></ArtistRoute>} />

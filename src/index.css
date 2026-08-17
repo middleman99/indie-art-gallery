@@ -3,18 +3,24 @@
    =========================== */
 
 :root {
-  /* Palette */
-  --coral:     #FF4D4D;
-  --coral-dim: #CC3D3D;
-  --coral-soft:#FF4D4D22;
-  --cream:     #FFF8F0;
-  --cream-dim: #F0E8DC;
-  --charcoal:  #1A1A2E;
-  --charcoal2: #16213E;
-  --charcoal3: #0F3460;
-  --gold:      #FFD700;
-  --gold-soft: #FFD70022;
-  --slate:     #8B8FA8;
+  /* Palette — Black / Metallic Gold / White (Aug 2026 rebrand)
+     NOTE: variable names kept from the original coral/cream/charcoal/gold
+     system to avoid touching every component file; only the hex VALUES
+     changed. --coral is now the primary metallic gold accent,
+     --charcoal* are near-black surfaces, --cream/--white are the
+     white/off-white text tones, --gold is the brighter trim gold used
+     for auction badges. */
+  --coral:     #D4AF37;   /* primary metallic gold accent (was red-coral) */
+  --coral-dim: #B8952C;   /* pressed/hover gold */
+  --coral-soft:#D4AF3722;
+  --cream:     #F5F5F0;   /* primary text (soft white) */
+  --cream-dim: #C9C9C2;
+  --charcoal:  #0A0A0A;   /* app background (near-black) */
+  --charcoal2: #141414;   /* elevated surfaces: topbar, bottom nav, sheets */
+  --charcoal3: #1E1E1E;   /* secondary elevated surfaces */
+  --gold:      #F0D264;   /* bright trim gold: auction badges, highlights */
+  --gold-soft: #F0D26422;
+  --slate:     #9A9A9A;   /* muted text on black */
   --white:     #FFFFFF;
   --red-err:   #FF3B3B;
   --green-ok:  #2ECC71;
@@ -111,7 +117,7 @@ a { color: inherit; text-decoration: none; }
 
 .btn-primary {
   background: var(--coral);
-  color: var(--white);
+  color: var(--charcoal);
 }
 .btn-primary:hover { background: var(--coral-dim); }
 

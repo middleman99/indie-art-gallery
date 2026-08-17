@@ -7,7 +7,7 @@ export default function PrivacyPolicy() {
       <TopBar title="Privacy Policy" back />
       <div className="container" style={{ paddingTop: 'var(--sp-6)', paddingBottom: 'var(--sp-10)', maxWidth: 700 }}>
         <p style={{ color: 'var(--slate)', fontSize: 'var(--text-xs)', marginBottom: 'var(--sp-6)' }}>
-          Last updated: July 2026
+          Last updated: August 2026
         </p>
 
         <div style={{ fontSize: 'var(--text-sm)', lineHeight: 1.8, color: 'var(--cream)' }}>
@@ -52,7 +52,20 @@ export default function PrivacyPolicy() {
             <li><strong>Netlify:</strong> web hosting and serverless functions</li>
           </ul>
 
-          <h3 style={sectionStyle}>4. Cookies and Tracking</h3>
+          <h3 style={sectionStyle}>4. Android App</h3>
+          <p style={pStyle}>
+            The Indie Art Gallery Android app is a native wrapper around this same website and
+            platform - it does not collect any additional personal information beyond what is
+            described in this policy. The Android app requests camera and microphone permissions
+            only when an artist starts a live show or a user watches one, so that live video/audio
+            can be transmitted through our streaming provider (LiveKit); these permissions are
+            never used to record or access your camera/microphone at any other time. To comply
+            with Google Play policy, purchases of digital artwork are completed on the website
+            rather than inside the Android app; purchases of physical artwork can be completed in
+            either place.
+          </p>
+
+          <h3 style={sectionStyle}>5. Cookies and Tracking</h3>
           <p style={pStyle}>
             As of this writing, the Platform does not use third-party advertising trackers or
             analytics services (such as Google Analytics or advertising pixels). Standard
@@ -60,7 +73,7 @@ export default function PrivacyPolicy() {
             above to deliver the service.
           </p>
 
-          <h3 style={sectionStyle}>5. Data Sharing</h3>
+          <h3 style={sectionStyle}>6. Data Sharing</h3>
           <p style={pStyle}>
             We do not sell your personal information. We share information only with the
             service providers listed above as necessary to operate the Platform, with other
@@ -68,41 +81,44 @@ export default function PrivacyPolicy() {
             delivery-relevant information for an order), or where required by law.
           </p>
 
-          <h3 style={sectionStyle}>6. Data Retention</h3>
+          <h3 style={sectionStyle}>7. Data Retention</h3>
           <p style={pStyle}>
             We retain account and transaction information for as long as your account is active
             and as needed to comply with legal, tax, and accounting obligations related to
             completed transactions.
           </p>
 
-          <h3 style={sectionStyle}>7. Security</h3>
+          <h3 style={sectionStyle}>8. Security</h3>
           <p style={pStyle}>
             We use industry-standard security practices, including access-controlled databases
             and encrypted connections, to protect your information. No system is completely
             secure, and we cannot guarantee absolute security.
           </p>
 
-          <h3 style={sectionStyle}>8. Your Rights</h3>
+          <h3 style={sectionStyle}>9. Your Rights</h3>
           <p style={pStyle}>
-            You may request access to, correction of, or deletion of your personal information
-            by contacting us at the email below. We will respond to verified requests consistent
+            You may request access to, correction of, or deletion of your personal information at
+            any time. To delete your account and data, use the in-app Delete Account option
+            (Profile → Danger Zone) or visit{' '}
+            <a href="/delete-account" style={{ color: 'var(--coral)' }}>indieartgallery.live/delete-account</a>{' '}
+            if you don't have access to the app. We will respond to verified requests consistent
             with applicable law.
           </p>
 
-          <h3 style={sectionStyle}>9. Children's Privacy</h3>
+          <h3 style={sectionStyle}>10. Children's Privacy</h3>
           <p style={pStyle}>
             The Platform is intended for users 18 years of age and older. We do not knowingly
             collect information from anyone under 18. If we learn that we have collected
             information from a user under 18, we will delete it.
           </p>
 
-          <h3 style={sectionStyle}>10. Changes to This Policy</h3>
+          <h3 style={sectionStyle}>11. Changes to This Policy</h3>
           <p style={pStyle}>
             We may update this Privacy Policy from time to time. Continued use of the Platform
             after changes take effect constitutes acceptance of the revised policy.
           </p>
 
-          <h3 style={sectionStyle}>11. Contact</h3>
+          <h3 style={sectionStyle}>12. Contact</h3>
           <p style={pStyle}>
             Questions about this Privacy Policy, or requests regarding your personal information,
             can be directed to{' '}

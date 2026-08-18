@@ -4,10 +4,35 @@ name: Deploy to Cloudflare Workers
 # Cloudflare on every push to main. This is what keeps indieartgallery.live
 # up to date once the domain has been cut over from Netlify.
 #
-# Required repo secret:
+# Required repo secrets:
 #   CLOUDFLARE_API_TOKEN - same token used for the initial migration
 #     (Account: Workers Scripts Edit, Account Settings Read;
-#      Zone: Zone Edit, DNS Edit)
+#      User: User Details Read, Memberships Read)
+#
+#   The following are all VITE_* build-time values that Vite inlines into
+#   the static bundle - the frontend needs them to reach Firebase, Stripe,
+#   Cloudinary, and LiveKit directly from the browser. These are NOT secret
+#   in the security sense (they end up in the public JS bundle - that's how
+#   Firebase web config and Stripe publishable keys are meant to work), but
+#   storing them as repo secrets keeps them out of the tracked wrangler.toml/
+#   .env files and lets each environment (local/.env.local vs CI) manage its
+#   own copy:
+#     VITE_FIREBASE_API_KEY
+#     VITE_FIREBASE_AUTH_DOMAIN
+#     VITE_FIREBASE_PROJECT_ID
+#     VITE_FIREBASE_STORAGE_BUCKET
+#     VITE_FIREBASE_MESSAGING_SENDER_ID
+#     VITE_FIREBASE_APP_ID
+#     VITE_STRIPE_PUBLISHABLE_KEY
+#     VITE_CLOUDINARY_CLOUD_NAME
+#     VITE_CLOUDINARY_UPLOAD_PRESET
+#     VITE_LIVEKIT_URL
+#
+# Separately, the Worker itself needs its own runtime secrets (STRIPE_SECRET_KEY,
+# RESEND_API_KEY, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, VITE_CLOUDINARY_CLOUD_NAME,
+# VITE_CLOUDINARY_UPLOAD_PRESET) - those are set separately via the Cloudflare
+# dashboard (Workers & Pages -> indie-art-gallery -> Settings -> Variables and
+# Secrets), NOT here. This workflow only handles the frontend build-time values.
 
 on:
   push:
@@ -42,6 +67,17 @@ jobs:
 
       - name: Build web app
         run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_CLOUDINARY_CLOUD_NAME: ${{ secrets.VITE_CLOUDINARY_CLOUD_NAME }}
+          VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
+          VITE_LIVEKIT_URL: ${{ secrets.VITE_LIVEKIT_URL }}
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3

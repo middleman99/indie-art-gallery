@@ -8,7 +8,7 @@
 ## Phase 1 — What's Built
 
 - ✅ PWA shell (installable on Android/iOS)
-- ✅ Full design system (coral/cream/charcoal/gold)
+- ✅ Full design system (warm cream / wood-brown / near-black, matched to the indieartgallery.live logo)
 - ✅ Firebase Auth (signup with role selection, login)
 - ✅ Firestore user profiles
 - ✅ Discover page (live shows + art grid + filters)

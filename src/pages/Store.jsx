@@ -95,7 +95,7 @@ export default function Store() {
         </div>
 
         {showFilters && (
-          <div style={{ marginBottom: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,248,240,0.08)' }}>
+          <div style={{ marginBottom: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(21,23,26,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(21,23,26,0.08)' }}>
             <div style={{ marginBottom: 'var(--sp-3)' }}>
               <div className="input-label" style={{ marginBottom: 'var(--sp-2)' }}>Art Type</div>
               <div className="chips">

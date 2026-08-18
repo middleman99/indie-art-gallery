@@ -96,7 +96,7 @@ export default function Collection() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
             {orders.map(order => (
-              <div key={order.id} style={{ display: 'flex', gap: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-lg)', border: '1px solid rgba(255,248,240,0.08)' }}>
+              <div key={order.id} style={{ display: 'flex', gap: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(21,23,26,0.04)', borderRadius: 'var(--r-lg)', border: '1px solid rgba(21,23,26,0.08)' }}>
                 <div style={{ width: 72, height: 72, borderRadius: 'var(--r-md)', background: 'linear-gradient(135deg, rgba(255,77,77,0.08), rgba(255,215,0,0.06))', flexShrink: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {images[order.id] ? (
                     <img src={images[order.id]} alt={order.pieceTitle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

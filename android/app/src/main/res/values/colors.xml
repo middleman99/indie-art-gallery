@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Black / Metallic Gold / White brand theme -->
-    <color name="colorPrimary">#D4AF37</color>
-    <color name="colorPrimaryDark">#0A0A0A</color>
-    <color name="colorAccent">#F0D264</color>
-    <color name="background">#0A0A0A</color>
+    <!-- Warm Cream / Wood-Brown / Near-Black brand theme (matches indieartgallery.live logo) -->
+    <color name="colorPrimary">#A9713D</color>
+    <color name="colorPrimaryDark">#F4F2ED</color>
+    <color name="colorAccent">#C89B3C</color>
+    <color name="background">#F4F2ED</color>
 </resources>

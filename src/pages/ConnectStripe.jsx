@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext'
 import { doc, updateDoc } from 'firebase/firestore'
 import { db } from '../firebase'
 import TopBar from '../components/TopBar'
+import { API_BASE } from '../utils/platform'
 import { CreditCard, CheckCircle, ExternalLink } from 'lucide-react'
 
 export default function ConnectStripe() {
@@ -30,7 +31,7 @@ export default function ConnectStripe() {
       if (!profile?.stripeAccountId || profile?.stripeOnboardingComplete) return
       setCheckingStatus(true)
       try {
-        const res = await fetch('/api/stripe', {
+        const res = await fetch(`${API_BASE}/api/stripe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -58,7 +59,7 @@ export default function ConnectStripe() {
       let accountId = profile?.stripeAccountId
 
       if (!accountId) {
-        const res = await fetch('/api/stripe', {
+        const res = await fetch(`${API_BASE}/api/stripe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'create_account', data: {} }),
@@ -79,7 +80,7 @@ export default function ConnectStripe() {
         await refreshProfile()
       }
 
-      const res2 = await fetch('/api/stripe', {
+      const res2 = await fetch(`${API_BASE}/api/stripe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

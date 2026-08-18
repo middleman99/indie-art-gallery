@@ -25,3 +25,12 @@ export function isDigitalPurchaseBlocked(piece) {
 }
 
 export const WEBSITE_URL = 'https://indieartgallery.live'
+
+// The Android app bundles its own copy of the built web assets (see
+// capacitor.config.ts - webDir only, no server.url), so it runs from a local
+// WebView origin instead of https://indieartgallery.live. Relative API calls
+// like fetch('/api/stripe') would resolve against that local origin and fail,
+// so native builds need the full origin prefixed on every /api/* call. On
+// the plain website, API_BASE is '' so calls stay relative/same-origin as
+// before - no behavior change there.
+export const API_BASE = isNativeApp() ? WEBSITE_URL : ''

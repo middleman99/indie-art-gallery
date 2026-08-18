@@ -6,6 +6,7 @@ import { useToast } from '../context/ToastContext'
 import { db } from '../firebase'
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'
 import TopBar from '../components/TopBar'
+import { API_BASE } from '../utils/platform'
 import { Radio, Gavel, Package } from 'lucide-react'
 
 const ART_TYPES = ['Painting', 'Drawing', 'Digital', 'Photography', 'Sculpture', 'Textile', 'Mixed Media', 'Print', 'Other']
@@ -22,7 +23,7 @@ async function notifyFollowersGoingLive(artistId, artistName, showTitle) {
       .map(d => d.data().email)
       .filter(Boolean)
       .map(followerEmail =>
-        fetch('/api/email', {
+        fetch(`${API_BASE}/api/email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

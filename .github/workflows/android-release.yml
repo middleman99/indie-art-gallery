@@ -12,6 +12,14 @@ name: Build signed Android release
 #   ANDROID_KEYSTORE_PASSWORD
 #   ANDROID_KEY_ALIAS
 #   ANDROID_KEY_PASSWORD
+#
+#   Plus the same VITE_* build-time secrets as cloudflare-deploy.yml
+#   (VITE_FIREBASE_*, VITE_STRIPE_PUBLISHABLE_KEY, VITE_CLOUDINARY_*,
+#   VITE_LIVEKIT_URL) - the app now bundles its own built dist/ instead of
+#   loading indieartgallery.live remotely (see capacitor.config.ts), so this
+#   build step is what actually ships the Firebase/Stripe/Cloudinary/LiveKit
+#   config into the app. Without these, the app installs but auth/checkout/
+#   uploads/live-shows would all silently fail.
 
 on:
   push:
@@ -52,13 +60,19 @@ jobs:
       - name: Install web app dependencies
         run: npm ci
 
-      # This build's dist/ output only ships as an inert fallback inside the
-      # APK/AAB - capacitor.config.ts sets server.url to the live site, so
-      # the app actually loads indieartgallery.live at runtime. That means
-      # this step doesn't need real Firebase/Stripe/LiveKit secrets to
-      # produce a working app; no VITE_ env vars are required here.
       - name: Build web app
         run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_CLOUDINARY_CLOUD_NAME: ${{ secrets.VITE_CLOUDINARY_CLOUD_NAME }}
+          VITE_CLOUDINARY_UPLOAD_PRESET: ${{ secrets.VITE_CLOUDINARY_UPLOAD_PRESET }}
+          VITE_LIVEKIT_URL: ${{ secrets.VITE_LIVEKIT_URL }}
 
       - name: Sync Capacitor Android project
         run: npx cap sync android

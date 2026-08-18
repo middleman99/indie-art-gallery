@@ -6,6 +6,7 @@ import { collection, getDocs, orderBy, query, limit, doc, updateDoc, where, getC
 import { db } from '../firebase'
 import TopBar from '../components/TopBar'
 import { useToast } from '../context/ToastContext'
+import { API_BASE } from '../utils/platform'
 import { Users, ShoppingBag, DollarSign, AlertTriangle, Ban, CheckCircle, Radio } from 'lucide-react'
 
 export default function Admin() {
@@ -168,7 +169,7 @@ export default function Admin() {
 
     setRefundingId(order.id)
     try {
-      const res = await fetch('/api/stripe', {
+      const res = await fetch(`${API_BASE}/api/stripe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

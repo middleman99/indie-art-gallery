@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot, serverT
 import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
+import { API_BASE } from '../utils/platform'
 import {
   LiveKitRoom,
   VideoConference,
@@ -194,7 +195,7 @@ function BidPanel({ showId, show, user, profile, isHost }) {
         const buyerEmail = buyerSnap.exists() ? buyerSnap.data().email : null
         if (buyerEmail) {
           const { buyerPremium, total } = calcBuyerPremium(show.currentBid)
-          await fetch('/api/email', {
+          await fetch(`${API_BASE}/api/email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -461,7 +462,7 @@ export default function ShowRoom() {
     if (!show) return
     async function getToken() {
       try {
-        const res = await fetch('/api/livekit', {
+        const res = await fetch(`${API_BASE}/api/livekit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { doc, setDoc, updateDoc, collection, query, where, orderBy, getDocs, onSnapshot, addDoc, serverTimestamp, getCountFromServer } from 'firebase/firestore'
 import { db } from '../firebase'
+import { API_BASE } from '../utils/platform'
 import { Camera, Edit2, LogOut, Plus, Radio, Store, CreditCard, Package, CheckCircle2, Circle, ChevronRight, ShieldCheck, AlertTriangle } from 'lucide-react'
 import ArtCard from '../components/ArtCard'
 
@@ -369,7 +370,7 @@ export default function Profile() {
     async function verifyStripeStatus() {
       if (!user?.uid || !profile?.stripeAccountId || profile?.stripeOnboardingComplete) return
       try {
-        const res = await fetch('/api/stripe', {
+        const res = await fetch(`${API_BASE}/api/stripe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

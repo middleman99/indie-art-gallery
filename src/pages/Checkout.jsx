@@ -7,7 +7,7 @@ import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import TopBar from '../components/TopBar'
 import DigitalWebOnlyNotice from '../components/DigitalWebOnlyNotice'
-import { isDigitalPurchaseBlocked } from '../utils/platform'
+import { isDigitalPurchaseBlocked, API_BASE } from '../utils/platform'
 import { Clock, ShieldCheck } from 'lucide-react'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
@@ -156,7 +156,7 @@ export default function Checkout() {
         // exactly when piece.id corresponds to a real Firestore listings document.
         if (piece.id && !piece.isDemo) metadata.pieceId = piece.id
 
-        const res = await fetch('/api/stripe', {
+        const res = await fetch(`${API_BASE}/api/stripe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

@@ -4,6 +4,7 @@ import { useNavigate, Routes, Route, Navigate } from 'react-router-dom'
 import { doc, updateDoc, getDoc } from 'firebase/firestore'
 import { db } from './firebase'
 import { useAuth } from './context/AuthContext'
+import { API_BASE } from './utils/platform'
 import BottomNav from './components/BottomNav'
 import Discover from './pages/Discover'
 import LandingPage from './pages/LandingPage'
@@ -57,7 +58,7 @@ function OrderComplete() {
       }
 
       try {
-        const res = await fetch('/api/stripe', {
+        const res = await fetch(`${API_BASE}/api/stripe`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -108,7 +109,7 @@ function OrderComplete() {
               const orderSnap = await getDoc(doc(db, 'orders', meta.orderId))
               if (orderSnap.exists()) {
                 const orderData = orderSnap.data()
-                const certRes = await fetch('/api/certificate', {
+                const certRes = await fetch(`${API_BASE}/api/certificate`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -137,7 +138,7 @@ function OrderComplete() {
 
           if (meta.buyerEmail && meta.pieceTitle && meta.total) {
             try {
-              await fetch('/api/email', {
+              await fetch(`${API_BASE}/api/email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

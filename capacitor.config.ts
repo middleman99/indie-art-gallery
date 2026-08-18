@@ -1,19 +1,22 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-// This app is a Capacitor wrapper around the live Indie Art Gallery web app.
-// We point the WebView at the production site (server.url) instead of bundling
-// the built dist/ folder, because the app calls same-origin Netlify functions
-// (/.netlify/functions/stripe, /email, /livekit, /certificate) via relative
-// paths — those only resolve correctly when the page is actually served from
-// indieartgallery.live. This also means every web deploy (including the
-// planned Cloudflare Pages migration, as long as the custom domain stays the
-// same) automatically updates the app with no new store submission needed.
+// This app bundles its OWN copy of the built web assets (webDir: 'dist') into
+// the APK, instead of loading indieartgallery.live remotely - it runs fully
+// standalone as a real installed app, not a wrapped webpage: no network
+// round-trip to fetch the app shell, no dependency on the live site being up
+// to even open. It still talks to the internet for actual data (Firebase,
+// Stripe, the Cloudflare Worker /api/* endpoints, LiveKit) exactly like any
+// native app would - see src/utils/platform.js's API_BASE, which prefixes
+// those calls with the full indieartgallery.live origin on native builds
+// since relative paths would otherwise resolve against the local bundle.
+// androidScheme/allowNavigation still matter here even without server.url:
+// the local bundle is served from https://localhost, and allowNavigation
+// covers any full-page navigations (e.g. a payment redirect) to these hosts.
 const config: CapacitorConfig = {
   appId: 'com.middlemanmerchants.indieartgallery',
   appName: 'Indie Art Gallery',
   webDir: 'dist',
   server: {
-    url: 'https://indieartgallery.live',
     androidScheme: 'https',
     allowNavigation: [
       'indieartgallery.live',

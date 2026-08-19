@@ -252,7 +252,7 @@ export default function Admin() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 'var(--sp-3)', marginBottom: 'var(--sp-6)' }}>
           {STATS_DISPLAY.map(({ label, value, icon: Icon, color }) => (
-            <div key={label} style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div key={label} style={{ padding: 'var(--sp-4)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(28,26,23,0.08)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)', marginBottom: 'var(--sp-2)' }}>
                 <Icon size={14} color={color} />
                 <span style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
@@ -276,7 +276,7 @@ export default function Admin() {
 
         {tab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
-            <div style={{ padding: 'var(--sp-5)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ padding: 'var(--sp-5)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(28,26,23,0.08)' }}>
               <h4 style={{ marginBottom: 'var(--sp-3)', display: 'flex', alignItems: 'center', gap: 8 }}><Radio size={16} color="var(--coral)" /> Live Activity</h4>
               {liveShows.length === 0 ? (
                 <p style={{ color: 'var(--slate)', fontSize: 'var(--text-sm)' }}>No shows currently live.</p>
@@ -291,7 +291,7 @@ export default function Admin() {
               )}
             </div>
 
-            <div style={{ padding: 'var(--sp-5)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ padding: 'var(--sp-5)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(28,26,23,0.08)' }}>
               <h4 style={{ marginBottom: 'var(--sp-3)', display: 'flex', alignItems: 'center', gap: 8 }}><ShoppingBag size={16} color="var(--gold)" /> Recent Sales</h4>
               {recentSales.length === 0 ? (
                 <p style={{ color: 'var(--slate)', fontSize: 'var(--text-sm)' }}>No sales yet.</p>
@@ -307,7 +307,7 @@ export default function Admin() {
               )}
             </div>
 
-            <div style={{ padding: 'var(--sp-5)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ padding: 'var(--sp-5)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(28,26,23,0.08)' }}>
               <h4 style={{ marginBottom: 'var(--sp-3)', display: 'flex', alignItems: 'center', gap: 8 }}><AlertTriangle size={16} color="#FF8C00" /> Flagged Users</h4>
               <p style={{ color: 'var(--slate)', fontSize: 'var(--text-sm)' }}>
                 {stats.flaggedUsers === '0'
@@ -330,7 +330,7 @@ export default function Admin() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
                 {users.map(u => (
-                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-3)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-3)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(28,26,23,0.08)' }}>
                     <div>
                       <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
                         {u.displayName} {u.isBanned && <span className="badge" style={{ background: 'rgba(255,59,59,0.15)', color: 'var(--red-err)', marginLeft: 6 }}>Banned</span>}
@@ -365,7 +365,7 @@ export default function Admin() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
                 {listings.map(l => (
-                  <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--sp-3)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--sp-3)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(28,26,23,0.08)' }}>
                     <div>
                       <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{l.title}</div>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>by {l.artistName}</div>
@@ -392,7 +392,7 @@ export default function Admin() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
                 {payoutOrders.map(o => (
-                  <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-3)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div key={o.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-3)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(28,26,23,0.08)' }}>
                     <div>
                       <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{o.pieceTitle}</div>
                       <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{o.artistName} ← {o.buyerName} — ${o.winningBid}</div>

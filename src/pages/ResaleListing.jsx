@@ -204,7 +204,7 @@ export default function ResaleListing() {
                 { value: 'physical', label: 'Physical', desc: 'Buyer pays shipping', icon: Package },
                 { value: 'digital', label: 'Digital', desc: 'File unlocks on payment', icon: Monitor },
               ].map(({ value, label, desc, icon: Icon }) => (
-                <div key={value} onClick={() => set('deliveryType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.deliveryType === value ? 'var(--coral)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.deliveryType === value ? 'var(--coral-soft)' : 'transparent', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div key={value} onClick={() => set('deliveryType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.deliveryType === value ? 'var(--coral)' : 'rgba(28,26,23,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.deliveryType === value ? 'var(--coral-soft)' : 'transparent', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <Icon size={18} color={form.deliveryType === value ? 'var(--coral)' : 'var(--slate)'} />
                   <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{label}</div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{desc}</div>
@@ -222,7 +222,7 @@ export default function ResaleListing() {
                 { value: 'fixed', label: 'Fixed Price', desc: 'Set your price', icon: DollarSign },
                 { value: 'auction', label: 'Auction', desc: 'Let buyers bid', icon: Gavel },
               ].map(({ value, label, desc, icon: Icon }) => (
-                <div key={value} onClick={() => set('listingType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.listingType === value ? 'var(--coral)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.listingType === value ? 'var(--coral-soft)' : 'transparent', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div key={value} onClick={() => set('listingType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.listingType === value ? 'var(--coral)' : 'rgba(28,26,23,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.listingType === value ? 'var(--coral-soft)' : 'transparent', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <Icon size={18} color={form.listingType === value ? 'var(--coral)' : 'var(--slate)'} />
                   <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{label}</div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{desc}</div>

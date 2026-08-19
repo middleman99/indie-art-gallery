@@ -202,7 +202,7 @@ export default function ListArt() {
             <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Artwork Photo *</div>
             {imagePreview ? (
               <div style={{ position: 'relative' }}>
-                <img src={imagePreview} alt="Preview" style={{ width: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.04)' }} />
+                <img src={imagePreview} alt="Preview" style={{ width: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 'var(--r-md)', background: 'rgba(28,26,23,0.04)' }} />
                 <button type="button" onClick={() => { setImageFile(null); setImagePreview(null) }}
                   style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.7)', border: 'none', color: '#fff', borderRadius: 'var(--r-full)', padding: '4px 10px', cursor: 'pointer', fontSize: 'var(--text-xs)' }}>
                   Change
@@ -211,9 +211,9 @@ export default function ListArt() {
             ) : (
               <div
                 onClick={() => fileRef.current?.click()}
-                style={{ border: '2px dashed rgba(255,255,255,0.15)', borderRadius: 'var(--r-md)', padding: 'var(--sp-10)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-3)', cursor: 'pointer', transition: 'border-color var(--t-fast)' }}
+                style={{ border: '2px dashed rgba(28,26,23,0.15)', borderRadius: 'var(--r-md)', padding: 'var(--sp-10)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-3)', cursor: 'pointer', transition: 'border-color var(--t-fast)' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--coral)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(28,26,23,0.15)'}
               >
                 <Upload size={28} color="var(--slate)" />
                 <span style={{ color: 'var(--slate)', fontSize: 'var(--text-sm)' }}>Tap to upload photo</span>
@@ -294,7 +294,7 @@ export default function ListArt() {
                 { value: 'physical', label: 'Physical', desc: 'Buyer pays shipping', icon: Package },
                 { value: 'digital', label: 'Digital', desc: 'File unlocks on payment', icon: Monitor },
               ].map(({ value, label, desc, icon: Icon }) => (
-                <div key={value} onClick={() => set('deliveryType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.deliveryType === value ? 'var(--coral)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.deliveryType === value ? 'var(--coral-soft)' : 'transparent', transition: 'all var(--t-fast)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div key={value} onClick={() => set('deliveryType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.deliveryType === value ? 'var(--coral)' : 'rgba(28,26,23,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.deliveryType === value ? 'var(--coral-soft)' : 'transparent', transition: 'all var(--t-fast)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <Icon size={18} color={form.deliveryType === value ? 'var(--coral)' : 'var(--slate)'} />
                   <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{label}</div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{desc}</div>
@@ -312,7 +312,7 @@ export default function ListArt() {
                 { value: 'fixed', label: 'Fixed Price', desc: 'Set your price', icon: DollarSign },
                 { value: 'auction', label: 'Auction', desc: 'Let buyers bid', icon: Gavel },
               ].map(({ value, label, desc, icon: Icon }) => (
-                <div key={value} onClick={() => set('listingType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.listingType === value ? 'var(--coral)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.listingType === value ? 'var(--coral-soft)' : 'transparent', transition: 'all var(--t-fast)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div key={value} onClick={() => set('listingType', value)} style={{ padding: 'var(--sp-4)', border: `2px solid ${form.listingType === value ? 'var(--coral)' : 'rgba(28,26,23,0.1)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', background: form.listingType === value ? 'var(--coral-soft)' : 'transparent', transition: 'all var(--t-fast)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <Icon size={18} color={form.listingType === value ? 'var(--coral)' : 'var(--slate)'} />
                   <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{label}</div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{desc}</div>

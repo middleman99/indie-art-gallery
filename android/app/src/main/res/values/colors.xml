@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Whatnot-style dark theme (Aug 2026 redesign) -->
-    <color name="colorPrimary">#FFFFFF</color>
-    <color name="colorPrimaryDark">#1C1C1C</color>
-    <color name="colorAccent">#FFE314</color>
-    <color name="background">#1C1C1C</color>
+    <!-- Light/cream theme with rich wood-brown + amber-gold accents (v3) -->
+    <color name="colorPrimary">#B8622E</color>
+    <color name="colorPrimaryDark">#FAF3E7</color>
+    <color name="colorAccent">#D9970F</color>
+    <color name="background">#FAF3E7</color>
 </resources>

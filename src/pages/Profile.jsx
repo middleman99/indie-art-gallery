@@ -97,7 +97,7 @@ function OnboardingChecklist({ profile, user, navigate, onEditProfile }) {
         </span>
       </div>
 
-      <div style={{ height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 999, marginBottom: 'var(--sp-4)', overflow: 'hidden' }}>
+      <div style={{ height: 4, background: 'rgba(28,26,23,0.08)', borderRadius: 999, marginBottom: 'var(--sp-4)', overflow: 'hidden' }}>
         <div style={{
           height: '100%',
           width: `${(doneCount / steps.length) * 100}%`,
@@ -233,7 +233,7 @@ function OffersPanel({ user }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
         {offers.map(offer => (
-          <div key={offer.id} style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div key={offer.id} style={{ padding: 'var(--sp-4)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(28,26,23,0.08)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--sp-2)' }}>
               <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{offer.pieceTitle}</div>
               <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--gold)' }}>${offer.amount}</div>
@@ -494,7 +494,7 @@ export default function Profile() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 'var(--sp-4)', paddingBottom: 'var(--sp-4)', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 'var(--sp-4)' }}>
+        <div style={{ display: 'flex', gap: 'var(--sp-4)', paddingBottom: 'var(--sp-4)', borderBottom: '1px solid rgba(28,26,23,0.08)', marginBottom: 'var(--sp-4)' }}>
           {[[listedCount === null ? '…' : listedCount, 'Listed'], [soldCount === null ? '…' : soldCount, 'Sold'], [profile?.followerCount || 0, 'Followers']].map(([val, label]) => (
             <div key={label} style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--coral)' }}>{val}</div>
@@ -515,7 +515,7 @@ export default function Profile() {
         {isArtist && <OffersPanel user={user} />}
 
         {editing && (
-          <div style={{ marginBottom: 'var(--sp-6)', padding: 'var(--sp-5)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-lg)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ marginBottom: 'var(--sp-6)', padding: 'var(--sp-5)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-lg)', border: '1px solid rgba(28,26,23,0.08)' }}>
             <h4 style={{ marginBottom: 'var(--sp-4)' }}>Edit Profile</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
               <div className="input-group">

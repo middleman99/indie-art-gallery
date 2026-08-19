@@ -222,7 +222,7 @@ export default function Orders() {
               const isExpired = order.paymentDeadline && new Date() > (order.paymentDeadline.toDate ? order.paymentDeadline.toDate() : new Date(order.paymentDeadline))
 
               return (
-                <div key={order.id} style={{ padding: 'var(--sp-5)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-lg)', border: `1px solid ${isPending && !isExpired ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.08)'}` }}>
+                <div key={order.id} style={{ padding: 'var(--sp-5)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-lg)', border: `1px solid ${isPending && !isExpired ? 'rgba(255,215,0,0.3)' : 'rgba(28,26,23,0.08)'}` }}>
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--sp-3)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-2)' }}>
@@ -250,7 +250,7 @@ export default function Orders() {
                     by {order.artistName}
                   </div>
 
-                  <div style={{ padding: 'var(--sp-3)', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--r-md)', marginBottom: 'var(--sp-3)' }}>
+                  <div style={{ padding: 'var(--sp-3)', background: 'rgba(28,26,23,0.03)', borderRadius: 'var(--r-md)', marginBottom: 'var(--sp-3)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)', marginBottom: 4 }}>
                       <span style={{ color: 'var(--slate)' }}>Winning bid</span>
                       <span>${order.winningBid}</span>
@@ -259,7 +259,7 @@ export default function Orders() {
                       <span style={{ color: 'var(--slate)' }}>Buyer's premium ({fees.buyerPremiumPercent}%)</span>
                       <span style={{ color: 'var(--slate)' }}>+${fees.buyerPremiumAmount}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, paddingTop: 'var(--sp-2)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, paddingTop: 'var(--sp-2)', borderTop: '1px solid rgba(28,26,23,0.08)' }}>
                       <span>Total</span>
                       <span style={{ color: 'var(--coral)', fontFamily: 'var(--font-mono)' }}>${fees.total}</span>
                     </div>

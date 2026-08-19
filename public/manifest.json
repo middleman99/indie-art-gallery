@@ -4,8 +4,8 @@
   "description": "Buy, sell, and discover original art live.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1C1C1C",
-  "theme_color": "#1C1C1C",
+  "background_color": "#FAF3E7",
+  "theme_color": "#FAF3E7",
   "orientation": "portrait",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },

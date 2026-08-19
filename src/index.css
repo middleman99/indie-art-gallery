@@ -3,31 +3,32 @@
    =========================== */
 
 :root {
-  /* Palette — Whatnot-style dark theme (Aug 2026 redesign). Colors were
-     extracted directly from real Whatnot app screenshots (pixel-sampled,
-     not eyeballed): #1C1C1C background, #2D2D2D card surfaces, #FFE314
-     brand yellow, #EF233C "live" red, white primary buttons/text.
-     NOTE: variable names kept from the prior cream-rebrand system to avoid
-     touching every component file; only the hex VALUES and roles changed.
-     --coral is now the primary action color (white, matches Whatnot's
-     white pill buttons), --charcoal* are near-black app/surface
-     backgrounds, --cream is near-white primary text, --gold is Whatnot's
-     brand yellow (auction/bid highlights, selected filter chips),
-     --live-red is the exact "LIVE" badge red, --slate is muted gray text. */
-  --coral:     #FFFFFF;   /* primary action color (white pill buttons, matches Whatnot) */
-  --coral-dim: #E5E5E5;   /* pressed/hover state for white buttons */
-  --coral-soft:#FFFFFF14;
-  --cream:     #FFFFFF;   /* primary text (near-white, on dark bg) */
-  --cream-dim: #ABABAB;   /* secondary text (light gray) */
-  --charcoal:  #1C1C1C;   /* app background (Whatnot near-black) */
-  --charcoal2: #2D2D2D;   /* elevated surfaces: topbar, bottom nav, sheets, cards */
-  --charcoal3: #242424;   /* secondary elevated surfaces */
-  --gold:      #FFE314;   /* Whatnot brand yellow: auction badges, selected chips */
-  --gold-soft: #FFE31422;
-  --slate:     #9A9A9A;   /* muted gray text on dark bg */
+  /* Palette — Light/cream base matched to the logo, with richer, more
+     saturated wood-brown + gold accents (Aug 2026 v3, per direct user
+     feedback: "too dark", "lighter side", "more color"). Keeps the
+     Whatnot-derived structural patterns (bottom nav, live-red badges)
+     from the v2 dark pass, but the base theme is light again - richer/
+     more saturated than the original muted cream rebrand.
+     --coral is the primary wood-brown/terracotta accent (buttons, links,
+     active nav), --charcoal* are light cream/white surfaces (app bg,
+     header/footer are now explicitly WHITE, not dark), --cream is near-
+     black primary text, --gold is a deep, saturated amber (auction
+     badges, selected chips), --live-red is the "LIVE" badge red (kept
+     from the Whatnot reference - reads well on light backgrounds too). */
+  --coral:     #B8622E;   /* rich terracotta/wood-brown - primary accent */
+  --coral-dim: #9C4F22;   /* pressed/hover state */
+  --coral-soft:#B8622E22;
+  --cream:     #1C1A17;   /* primary text (warm near-black) */
+  --cream-dim: #6B6255;   /* secondary text (warm gray-brown) */
+  --charcoal:  #FAF3E7;   /* app background (warm cream, matches logo card) */
+  --charcoal2: #FFFFFF;   /* elevated surfaces: header/footer/sheets/cards - explicitly light */
+  --charcoal3: #F1E7D6;   /* secondary elevated surfaces (warm tan) */
+  --gold:      #D9970F;   /* deep saturated amber-gold: auction badges, selected chips */
+  --gold-soft: #D9970F22;
+  --slate:     #8C8172;   /* muted warm-gray text on cream */
   --white:     #FFFFFF;
-  --live-red:  #EF233C;   /* exact "LIVE" badge red, sampled from Whatnot */
-  --red-err:   #FF5A5A;
+  --live-red:  #EF233C;   /* "LIVE" badge red, sampled from Whatnot - kept, reads well on light bg */
+  --red-err:   #E23535;
   --green-ok:  #2A9D5C;
 
   /* Type */
@@ -122,22 +123,22 @@ a { color: inherit; text-decoration: none; }
 
 .btn-primary {
   background: var(--coral);
-  color: var(--charcoal);
+  color: var(--white);
 }
 .btn-primary:hover { background: var(--coral-dim); }
 
 .btn-gold {
   background: var(--gold);
-  color: var(--charcoal);
+  color: var(--cream);
 }
 .btn-gold:hover { filter: brightness(1.08); }
 
 .btn-ghost {
   background: transparent;
   color: var(--cream);
-  border: 1.5px solid rgba(255,255,255,0.25);
+  border: 1.5px solid rgba(28,26,23,0.25);
 }
-.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+.btn-ghost:hover { border-color: var(--coral); color: var(--coral); }
 
 .btn-sm { padding: 8px 16px; font-size: var(--text-xs); }
 .btn-lg { padding: 16px 36px; font-size: var(--text-md); }
@@ -157,8 +158,8 @@ a { color: inherit; text-decoration: none; }
 }
 .input {
   width: 100%;
-  background: rgba(255,255,255,0.06);
-  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(28,26,23,0.06);
+  border: 1.5px solid rgba(28,26,23,0.12);
   border-radius: var(--r-md);
   color: var(--cream);
   font-family: var(--font-body);
@@ -176,8 +177,8 @@ select.input { cursor: pointer; }
    CARDS
    =========================== */
 .card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(28,26,23,0.04);
+  border: 1px solid rgba(28,26,23,0.08);
   border-radius: var(--r-lg);
   overflow: hidden;
   transition: transform var(--t-mid), box-shadow var(--t-mid);
@@ -199,7 +200,7 @@ select.input { cursor: pointer; }
   border-radius: var(--r-full);
 }
 .badge-live { background: var(--live-red); color: var(--white); animation: pulse-badge 2s infinite; }
-.badge-gold { background: var(--gold); color: var(--charcoal); }
+.badge-gold { background: var(--gold); color: var(--cream); }
 .badge-slate { background: rgba(139,143,168,0.2); color: var(--slate); }
 
 @keyframes pulse-badge {
@@ -227,7 +228,7 @@ select.input { cursor: pointer; }
    =========================== */
 .divider {
   height: 1px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(28,26,23,0.08);
   margin: var(--sp-6) 0;
 }
 .divider-text {
@@ -235,7 +236,7 @@ select.input { cursor: pointer; }
   color: var(--slate); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;
 }
 .divider-text::before, .divider-text::after {
-  content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08);
+  content: ''; flex: 1; height: 1px; background: rgba(28,26,23,0.08);
 }
 
 /* ===========================
@@ -250,10 +251,10 @@ select.input { cursor: pointer; }
 .bottom-nav {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  background: rgba(28,28,28,0.92);
+  background: rgba(28,26,23,0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(28,26,23,0.08);
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -286,10 +287,10 @@ select.input { cursor: pointer; }
 .topbar {
   position: sticky;
   top: 0;
-  background: rgba(28,28,28,0.88);
+  background: rgba(28,26,23,0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-bottom: 1px solid rgba(28,26,23,0.08);
   padding: var(--sp-4) var(--sp-4);
   display: flex;
   align-items: center;
@@ -323,8 +324,8 @@ select.input { cursor: pointer; }
    ART CARD
    =========================== */
 .art-card {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(28,26,23,0.04);
+  border: 1px solid rgba(28,26,23,0.08);
   border-radius: var(--r-md);
   overflow: hidden;
   cursor: pointer;
@@ -336,7 +337,7 @@ select.input { cursor: pointer; }
   aspect-ratio: 1;
   object-fit: cover;
   display: block;
-  background: rgba(255,255,255,0.06);
+  background: rgba(28,26,23,0.06);
 }
 .art-card-img-placeholder {
   width: 100%;
@@ -429,7 +430,7 @@ select.input { cursor: pointer; }
 .sheet {
   background: var(--charcoal2);
   border-radius: var(--r-lg) var(--r-lg) 0 0;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(28,26,23,0.1);
   padding: var(--sp-6) var(--sp-4);
   width: 100%;
   max-width: 600px;
@@ -440,7 +441,7 @@ select.input { cursor: pointer; }
 @keyframes slide-up { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .sheet-handle {
   width: 36px; height: 4px;
-  background: rgba(255,255,255,0.15);
+  background: rgba(28,26,23,0.15);
   border-radius: var(--r-full);
   margin: 0 auto var(--sp-6);
 }
@@ -456,7 +457,7 @@ select.input { cursor: pointer; }
 }
 .toast {
   background: var(--charcoal2);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(28,26,23,0.1);
   border-radius: var(--r-md);
   padding: var(--sp-3) var(--sp-4);
   font-size: var(--text-sm);
@@ -479,14 +480,14 @@ select.input { cursor: pointer; }
   font-weight: 500;
   padding: 5px 12px;
   border-radius: var(--r-full);
-  border: 1px solid rgba(255,255,255,0.15);
+  border: 1px solid rgba(28,26,23,0.15);
   color: var(--slate);
   cursor: pointer;
   transition: all var(--t-fast);
   background: none;
 }
 .chip:hover { border-color: var(--gold); color: var(--gold); }
-.chip.selected { border-color: var(--gold); color: var(--charcoal); background: var(--gold); }
+.chip.selected { border-color: var(--gold); color: var(--cream); background: var(--gold); }
 
 /* ===========================
    SECTION HEADERS
@@ -538,7 +539,7 @@ select.input { cursor: pointer; }
    =========================== */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(28,26,23,0.12); border-radius: 2px; }
 
 /* ===========================
    HERO GRAIN TEXTURE (signature)

@@ -194,7 +194,7 @@ export default function ArtistProfile() {
         )}
 
         {/* STATS */}
-        <div style={{ display: 'flex', gap: 'var(--sp-4)', paddingBottom: 'var(--sp-4)', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 'var(--sp-4)' }}>
+        <div style={{ display: 'flex', gap: 'var(--sp-4)', paddingBottom: 'var(--sp-4)', borderBottom: '1px solid rgba(28,26,23,0.08)', marginBottom: 'var(--sp-4)' }}>
           {[[listings.length, 'Listed'], [soldCount === null ? '…' : soldCount, 'Sold'], [artist.followerCount || 0, 'Followers']].map(([val, label]) => (
             <div key={label} style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--coral)' }}>{val}</div>

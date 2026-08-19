@@ -6,7 +6,7 @@ import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 import TopBar from '../components/TopBar'
 import LiveCard from '../components/LiveCard'
-import { Radio, Calendar } from 'lucide-react'
+import { Radio, Calendar, Palette, ShoppingBag } from 'lucide-react'
 
 export default function Live() {
   const { user, isArtist } = useAuth()
@@ -54,14 +54,42 @@ export default function Live() {
             </div>
           </section>
         ) : (
-          <div style={{ textAlign: 'center', padding: 'var(--sp-10) 0', color: 'var(--slate)', marginBottom: 'var(--sp-8)' }}>
-            <Radio size={32} style={{ margin: '0 auto var(--sp-4)', opacity: 0.3 }} />
-            <p>No one is live right now.</p>
-            {isArtist && (
-              <button className="btn btn-primary btn-sm" style={{ marginTop: 'var(--sp-4)' }} onClick={() => navigate('/go-live')}>
-                Be the first to go live
+          <div
+            className="grain-overlay"
+            style={{
+              textAlign: 'center',
+              padding: 'var(--sp-10) var(--sp-6)',
+              marginBottom: 'var(--sp-8)',
+              borderRadius: 'var(--r-lg)',
+              background: 'linear-gradient(160deg, var(--coral-soft), var(--gold-soft))',
+              border: '1px solid rgba(28,26,23,0.06)',
+            }}
+          >
+            <div style={{
+              width: 64, height: 64, margin: '0 auto var(--sp-5)',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--coral), var(--gold))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: 'var(--shadow-card)',
+            }}>
+              <Palette size={26} color="var(--white)" />
+            </div>
+            <p style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 6 }}>
+              No live shows right now
+            </p>
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--slate)', maxWidth: 340, margin: '0 auto var(--sp-5)' }}>
+              Artists go live to paint, unveil new work, and auction pieces in real time. Check back soon — or browse the gallery while you wait.
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--sp-3)', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary btn-sm" onClick={() => navigate('/store')}>
+                <ShoppingBag size={14} /> Browse the Store
               </button>
-            )}
+              {isArtist && (
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/go-live')}>
+                  <Radio size={14} /> Be the first to go live
+                </button>
+              )}
+            </div>
           </div>
         )}
 

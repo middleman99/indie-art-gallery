@@ -174,7 +174,7 @@ export default function GoLive() {
             </div>
           </div>
 
-          <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ padding: 'var(--sp-4)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(28,26,23,0.08)' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', cursor: 'pointer' }}>
               <input
                 type="checkbox"
@@ -195,7 +195,7 @@ export default function GoLive() {
             <div>
               <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Select Piece to Auction *</div>
               {myListings.length === 0 ? (
-                <div style={{ padding: 'var(--sp-6)', textAlign: 'center', color: 'var(--slate)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)' }}>
+                <div style={{ padding: 'var(--sp-6)', textAlign: 'center', color: 'var(--slate)', background: 'rgba(28,26,23,0.04)', borderRadius: 'var(--r-md)' }}>
                   <Package size={24} style={{ margin: '0 auto var(--sp-3)', opacity: 0.4 }} />
                   <p style={{ fontSize: 'var(--text-sm)' }}>You don't have any listings yet.</p>
                   <button className="btn btn-primary btn-sm" style={{ marginTop: 'var(--sp-3)' }} onClick={() => navigate('/list')}>
@@ -210,7 +210,7 @@ export default function GoLive() {
                       onClick={() => setSelectedPiece(p)}
                       style={{
                         padding: 'var(--sp-3)',
-                        border: `2px solid ${selectedPiece?.id === p.id ? 'var(--coral)' : 'rgba(255,255,255,0.1)'}`,
+                        border: `2px solid ${selectedPiece?.id === p.id ? 'var(--coral)' : 'rgba(28,26,23,0.1)'}`,
                         borderRadius: 'var(--r-md)',
                         cursor: 'pointer',
                         background: selectedPiece?.id === p.id ? 'var(--coral-soft)' : 'transparent',

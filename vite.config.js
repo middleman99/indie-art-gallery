@@ -10,8 +10,8 @@ export default defineConfig({
       manifest: {
         name: 'Indie Art Gallery',
         short_name: 'IndieArt',
-        theme_color: '#1C1C1C',
-        background_color: '#1C1C1C',
+        theme_color: '#FAF3E7',
+        background_color: '#FAF3E7',
         display: 'standalone',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },

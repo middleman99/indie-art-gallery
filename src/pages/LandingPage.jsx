@@ -220,7 +220,17 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div style={{ flex: '1 1 340px', display: 'flex', justifyContent: 'center', minWidth: 280 }}>
+        <div style={{ flex: '1 1 340px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--sp-5)', minWidth: 280 }}>
+          <video
+            src="/videos/live-demo.mp4"
+            autoPlay muted loop playsInline
+            style={{
+              width: '100%', maxWidth: 300, aspectRatio: '9/16',
+              objectFit: 'cover', borderRadius: 'var(--r-lg)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+              border: '1px solid rgba(28,26,23,0.08)',
+            }}
+          />
           <LiveAuctionDemo />
         </div>
       </section>

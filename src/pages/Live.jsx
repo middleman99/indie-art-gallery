@@ -6,7 +6,7 @@ import { db } from '../firebase'
 import { useAuth } from '../context/AuthContext'
 import TopBar from '../components/TopBar'
 import LiveCard from '../components/LiveCard'
-import { Radio, Calendar, Palette, ShoppingBag } from 'lucide-react'
+import { Radio, ShoppingBag } from 'lucide-react'
 
 export default function Live() {
   const { user, isArtist } = useAuth()
@@ -65,15 +65,16 @@ export default function Live() {
               border: '1px solid rgba(28,26,23,0.06)',
             }}
           >
-            <div style={{
-              width: 64, height: 64, margin: '0 auto var(--sp-5)',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--coral), var(--gold))',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: 'var(--shadow-card)',
-            }}>
-              <Palette size={26} color="var(--white)" />
-            </div>
+            <video
+              src="/videos/live-demo.mp4"
+              autoPlay muted loop playsInline
+              style={{
+                width: '100%', maxWidth: 220, aspectRatio: '9/16',
+                objectFit: 'cover', borderRadius: 'var(--r-lg)',
+                margin: '0 auto var(--sp-5)',
+                boxShadow: 'var(--shadow-card)',
+              }}
+            />
             <p style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 6 }}>
               No live shows right now
             </p>

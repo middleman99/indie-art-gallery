@@ -3,29 +3,31 @@
    =========================== */
 
 :root {
-  /* Palette — Warm Cream / Wood-Brown / Near-Black (Aug 2026 rebrand,
-     matched to the indieartgallery.live logo: cream card background,
-     black ribbon, wood-tone palette, cream-gold script).
-     NOTE: variable names kept from the original coral/cream/charcoal/gold
-     system to avoid touching every component file; only the hex VALUES
-     and, for --cream/--charcoal, the light/dark ROLES changed.
-     --coral is the primary wood-brown accent, --charcoal* are now the
-     light cream/white surfaces (was near-black), --cream is now the
-     near-black primary text color (was near-white), --gold is a richer
-     trim gold used for auction badges, --slate is muted warm-gray text. */
-  --coral:     #A9713D;   /* primary wood-brown accent, from logo palette wood */
-  --coral-dim: #8B5A2B;   /* pressed/hover wood-brown */
-  --coral-soft:#A9713D22;
-  --cream:     #15171A;   /* primary text (near-black, matches logo ribbon) */
-  --cream-dim: #4A453E;   /* secondary text (warm dark gray) */
-  --charcoal:  #F4F2ED;   /* app background (warm cream, matches logo card) */
-  --charcoal2: #FFFFFF;   /* elevated surfaces: topbar, bottom nav, sheets */
-  --charcoal3: #EFEAE0;   /* secondary elevated surfaces */
-  --gold:      #C89B3C;   /* trim gold: auction badges, highlights */
-  --gold-soft: #C89B3C22;
-  --slate:     #8A7F70;   /* muted warm-gray text on cream */
+  /* Palette — Whatnot-style dark theme (Aug 2026 redesign). Colors were
+     extracted directly from real Whatnot app screenshots (pixel-sampled,
+     not eyeballed): #1C1C1C background, #2D2D2D card surfaces, #FFE314
+     brand yellow, #EF233C "live" red, white primary buttons/text.
+     NOTE: variable names kept from the prior cream-rebrand system to avoid
+     touching every component file; only the hex VALUES and roles changed.
+     --coral is now the primary action color (white, matches Whatnot's
+     white pill buttons), --charcoal* are near-black app/surface
+     backgrounds, --cream is near-white primary text, --gold is Whatnot's
+     brand yellow (auction/bid highlights, selected filter chips),
+     --live-red is the exact "LIVE" badge red, --slate is muted gray text. */
+  --coral:     #FFFFFF;   /* primary action color (white pill buttons, matches Whatnot) */
+  --coral-dim: #E5E5E5;   /* pressed/hover state for white buttons */
+  --coral-soft:#FFFFFF14;
+  --cream:     #FFFFFF;   /* primary text (near-white, on dark bg) */
+  --cream-dim: #ABABAB;   /* secondary text (light gray) */
+  --charcoal:  #1C1C1C;   /* app background (Whatnot near-black) */
+  --charcoal2: #2D2D2D;   /* elevated surfaces: topbar, bottom nav, sheets, cards */
+  --charcoal3: #242424;   /* secondary elevated surfaces */
+  --gold:      #FFE314;   /* Whatnot brand yellow: auction badges, selected chips */
+  --gold-soft: #FFE31422;
+  --slate:     #9A9A9A;   /* muted gray text on dark bg */
   --white:     #FFFFFF;
-  --red-err:   #E23535;
+  --live-red:  #EF233C;   /* exact "LIVE" badge red, sampled from Whatnot */
+  --red-err:   #FF5A5A;
   --green-ok:  #2A9D5C;
 
   /* Type */
@@ -120,22 +122,22 @@ a { color: inherit; text-decoration: none; }
 
 .btn-primary {
   background: var(--coral);
-  color: var(--white);
+  color: var(--charcoal);
 }
 .btn-primary:hover { background: var(--coral-dim); }
 
 .btn-gold {
   background: var(--gold);
-  color: var(--white);
+  color: var(--charcoal);
 }
 .btn-gold:hover { filter: brightness(1.08); }
 
 .btn-ghost {
   background: transparent;
   color: var(--cream);
-  border: 1.5px solid rgba(21,23,26,0.25);
+  border: 1.5px solid rgba(255,255,255,0.25);
 }
-.btn-ghost:hover { border-color: var(--coral); color: var(--coral); }
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
 
 .btn-sm { padding: 8px 16px; font-size: var(--text-xs); }
 .btn-lg { padding: 16px 36px; font-size: var(--text-md); }
@@ -155,8 +157,8 @@ a { color: inherit; text-decoration: none; }
 }
 .input {
   width: 100%;
-  background: rgba(21,23,26,0.06);
-  border: 1.5px solid rgba(21,23,26,0.12);
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
   border-radius: var(--r-md);
   color: var(--cream);
   font-family: var(--font-body);
@@ -174,8 +176,8 @@ select.input { cursor: pointer; }
    CARDS
    =========================== */
 .card {
-  background: rgba(21,23,26,0.04);
-  border: 1px solid rgba(21,23,26,0.08);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: var(--r-lg);
   overflow: hidden;
   transition: transform var(--t-mid), box-shadow var(--t-mid);
@@ -196,7 +198,7 @@ select.input { cursor: pointer; }
   padding: 4px 10px;
   border-radius: var(--r-full);
 }
-.badge-live { background: var(--coral); color: var(--white); animation: pulse-badge 2s infinite; }
+.badge-live { background: var(--live-red); color: var(--white); animation: pulse-badge 2s infinite; }
 .badge-gold { background: var(--gold); color: var(--charcoal); }
 .badge-slate { background: rgba(139,143,168,0.2); color: var(--slate); }
 
@@ -211,7 +213,7 @@ select.input { cursor: pointer; }
 .live-dot {
   width: 8px; height: 8px;
   border-radius: 50%;
-  background: var(--coral);
+  background: var(--live-red);
   display: inline-block;
   animation: live-pulse 1.4s ease-in-out infinite;
 }
@@ -225,7 +227,7 @@ select.input { cursor: pointer; }
    =========================== */
 .divider {
   height: 1px;
-  background: rgba(21,23,26,0.08);
+  background: rgba(255,255,255,0.08);
   margin: var(--sp-6) 0;
 }
 .divider-text {
@@ -233,7 +235,7 @@ select.input { cursor: pointer; }
   color: var(--slate); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.08em;
 }
 .divider-text::before, .divider-text::after {
-  content: ''; flex: 1; height: 1px; background: rgba(21,23,26,0.08);
+  content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08);
 }
 
 /* ===========================
@@ -248,10 +250,10 @@ select.input { cursor: pointer; }
 .bottom-nav {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  background: rgba(26,26,46,0.95);
+  background: rgba(28,28,28,0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(21,23,26,0.08);
+  border-top: 1px solid rgba(255,255,255,0.08);
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -284,10 +286,10 @@ select.input { cursor: pointer; }
 .topbar {
   position: sticky;
   top: 0;
-  background: rgba(26,26,46,0.9);
+  background: rgba(28,28,28,0.88);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(21,23,26,0.08);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
   padding: var(--sp-4) var(--sp-4);
   display: flex;
   align-items: center;
@@ -300,7 +302,7 @@ select.input { cursor: pointer; }
   font-weight: 900;
   letter-spacing: -0.03em;
 }
-.topbar-logo span { color: var(--coral); }
+.topbar-logo span { color: var(--gold); }
 
 /* ===========================
    ART GRID
@@ -321,8 +323,8 @@ select.input { cursor: pointer; }
    ART CARD
    =========================== */
 .art-card {
-  background: rgba(21,23,26,0.04);
-  border: 1px solid rgba(21,23,26,0.08);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: var(--r-md);
   overflow: hidden;
   cursor: pointer;
@@ -334,7 +336,7 @@ select.input { cursor: pointer; }
   aspect-ratio: 1;
   object-fit: cover;
   display: block;
-  background: rgba(21,23,26,0.06);
+  background: rgba(255,255,255,0.06);
 }
 .art-card-img-placeholder {
   width: 100%;
@@ -427,7 +429,7 @@ select.input { cursor: pointer; }
 .sheet {
   background: var(--charcoal2);
   border-radius: var(--r-lg) var(--r-lg) 0 0;
-  border-top: 1px solid rgba(21,23,26,0.1);
+  border-top: 1px solid rgba(255,255,255,0.1);
   padding: var(--sp-6) var(--sp-4);
   width: 100%;
   max-width: 600px;
@@ -438,7 +440,7 @@ select.input { cursor: pointer; }
 @keyframes slide-up { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .sheet-handle {
   width: 36px; height: 4px;
-  background: rgba(21,23,26,0.15);
+  background: rgba(255,255,255,0.15);
   border-radius: var(--r-full);
   margin: 0 auto var(--sp-6);
 }
@@ -454,7 +456,7 @@ select.input { cursor: pointer; }
 }
 .toast {
   background: var(--charcoal2);
-  border: 1px solid rgba(21,23,26,0.1);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--r-md);
   padding: var(--sp-3) var(--sp-4);
   font-size: var(--text-sm);
@@ -477,13 +479,14 @@ select.input { cursor: pointer; }
   font-weight: 500;
   padding: 5px 12px;
   border-radius: var(--r-full);
-  border: 1px solid rgba(21,23,26,0.15);
+  border: 1px solid rgba(255,255,255,0.15);
   color: var(--slate);
   cursor: pointer;
   transition: all var(--t-fast);
   background: none;
 }
-.chip:hover, .chip.selected { border-color: var(--coral); color: var(--coral); background: var(--coral-soft); }
+.chip:hover { border-color: var(--gold); color: var(--gold); }
+.chip.selected { border-color: var(--gold); color: var(--charcoal); background: var(--gold); }
 
 /* ===========================
    SECTION HEADERS
@@ -535,7 +538,7 @@ select.input { cursor: pointer; }
    =========================== */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(21,23,26,0.12); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
 
 /* ===========================
    HERO GRAIN TEXTURE (signature)

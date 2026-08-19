@@ -123,7 +123,7 @@ export default function Search() {
                     <div
                       key={a.id}
                       onClick={() => navigate(`/artist/${a.id}`)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', padding: 'var(--sp-3)', background: 'rgba(21,23,26,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(21,23,26,0.08)', cursor: 'pointer' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', padding: 'var(--sp-3)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer' }}
                     >
                       <div className="avatar" style={{ width: 36, height: 36, fontSize: 'var(--text-sm)', overflow: 'hidden', flexShrink: 0 }}>
                         {a.avatarUrl

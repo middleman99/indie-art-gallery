@@ -73,7 +73,7 @@ export default function Auth() {
         </div>
 
         {/* Tab toggle */}
-        <div style={{ display: 'flex', background: 'rgba(21,23,26,0.05)', borderRadius: 'var(--r-full)', padding: 4, marginBottom: 'var(--sp-6)' }}>
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', borderRadius: 'var(--r-full)', padding: 4, marginBottom: 'var(--sp-6)' }}>
           {['login', 'signup'].map(m => (
             <button
               key={m}
@@ -164,14 +164,14 @@ export default function Auth() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 'var(--sp-4)',
                   padding: 'var(--sp-4)',
-                  border: `2px solid ${form.role === value ? 'var(--coral)' : 'rgba(21,23,26,0.1)'}`,
+                  border: `2px solid ${form.role === value ? 'var(--coral)' : 'rgba(255,255,255,0.1)'}`,
                   borderRadius: 'var(--r-md)',
                   background: form.role === value ? 'var(--coral-soft)' : 'transparent',
                   cursor: 'pointer',
                   transition: 'all var(--t-fast)',
                 }}
               >
-                <div style={{ width: 42, height: 42, borderRadius: 'var(--r-md)', background: form.role === value ? 'var(--coral)' : 'rgba(21,23,26,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 42, height: 42, borderRadius: 'var(--r-md)', background: form.role === value ? 'var(--coral)' : 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon size={20} color={form.role === value ? '#fff' : 'var(--slate)'} />
                 </div>
                 <div>

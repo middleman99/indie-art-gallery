@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Warm Cream / Wood-Brown / Near-Black brand theme (matches indieartgallery.live logo) -->
-    <color name="colorPrimary">#A9713D</color>
-    <color name="colorPrimaryDark">#F4F2ED</color>
-    <color name="colorAccent">#C89B3C</color>
-    <color name="background">#F4F2ED</color>
+    <!-- Whatnot-style dark theme (Aug 2026 redesign) -->
+    <color name="colorPrimary">#FFFFFF</color>
+    <color name="colorPrimaryDark">#1C1C1C</color>
+    <color name="colorAccent">#FFE314</color>
+    <color name="background">#1C1C1C</color>
 </resources>

@@ -41,10 +41,17 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    // Style 'DARK' = light/white icons - correct for the app's near-black
+    // background (Capacitor's naming is backwards: it names the style after
+    // the icon color's contrast target, not the icon color itself).
+    // backgroundColor intentionally differs from SplashScreen's below: the
+    // splash screen shows the actual brand logo on its cream card (unchanged
+    // brand asset), while the status bar matches the in-app dark theme that's
+    // visible for the other 99% of a session.
     StatusBar: {
       overlaysWebView: false,
-      style: 'LIGHT',
-      backgroundColor: '#F4F2ED',
+      style: 'DARK',
+      backgroundColor: '#1C1C1C',
     },
   },
 };

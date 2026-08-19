@@ -54,7 +54,7 @@ function Chat({ showId, user, profile }) {
         ))}
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={sendMessage} style={{ padding: 'var(--sp-3)', borderTop: '1px solid rgba(21,23,26,0.08)', display: 'flex', gap: 'var(--sp-2)' }}>
+      <form onSubmit={sendMessage} style={{ padding: 'var(--sp-3)', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 'var(--sp-2)' }}>
         <input
           className="input"
           type="text"
@@ -415,7 +415,7 @@ function RaidModal({ showId, onClose, artistName }) {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
             {shows.map(s => (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-4)', background: 'rgba(21,23,26,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(21,23,26,0.08)' }}>
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{s.artistName}</div>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--slate)' }}>{s.title}</div>
@@ -503,7 +503,7 @@ export default function ShowRoom() {
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--charcoal)' }}>
 
-      <div style={{ padding: 'var(--sp-3) var(--sp-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(21,23,26,0.08)', flexShrink: 0 }}>
+      <div style={{ padding: 'var(--sp-3) var(--sp-4)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)' }}>
           <button onClick={() => navigate('/live')} style={{ background: 'none', border: 'none', color: 'var(--slate)', cursor: 'pointer', fontSize: 'var(--text-sm)' }}>
             ← Back
@@ -556,7 +556,7 @@ export default function ShowRoom() {
 
       {show.allowBidding && <BidPanel showId={id} show={show} user={user} profile={profile} isHost={isHost} />}
 
-      <div style={{ display: 'flex', borderBottom: '1px solid rgba(21,23,26,0.08)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)', flexShrink: 0 }}>
         <div style={{ flex: 1, padding: 'var(--sp-3)', color: 'var(--coral)', fontFamily: 'var(--font-body)', fontSize: 'var(--text-xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', textAlign: 'center', borderBottom: '2px solid var(--coral)' }}>
           Chat
         </div>
@@ -567,7 +567,7 @@ export default function ShowRoom() {
       </div>
 
       {isHost && (
-        <div style={{ padding: 'var(--sp-3)', borderTop: '1px solid rgba(21,23,26,0.08)', display: 'flex', gap: 'var(--sp-3)', flexShrink: 0 }}>
+        <div style={{ padding: 'var(--sp-3)', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 'var(--sp-3)', flexShrink: 0 }}>
           <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => setShowRaid(true)}>
             <Zap size={14} /> Raid
           </button>

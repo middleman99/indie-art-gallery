@@ -43,7 +43,7 @@ function CheckoutForm({ piece, fees, clientSecret }) {
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-5)' }}>
 
       {/* Order summary */}
-      <div style={{ padding: 'var(--sp-4)', background: 'rgba(21,23,26,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(21,23,26,0.08)' }}>
+      <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--sp-2)', fontSize: 'var(--text-sm)' }}>
           <span style={{ color: 'var(--slate)' }}>{piece.title}</span>
           <span>${piece.price || piece.currentBid}</span>
@@ -52,7 +52,7 @@ function CheckoutForm({ piece, fees, clientSecret }) {
           <span style={{ color: 'var(--slate)' }}>Buyer's premium ({fees.buyerPremiumPercent}%)</span>
           <span style={{ color: 'var(--slate)' }}>+${fees.buyerPremiumAmount}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 'var(--sp-3)', borderTop: '1px solid rgba(21,23,26,0.08)', fontWeight: 700 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 'var(--sp-3)', borderTop: '1px solid rgba(255,255,255,0.08)', fontWeight: 700 }}>
           <span>Total</span>
           <span style={{ color: 'var(--coral)', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-lg)' }}>${fees.total}</span>
         </div>
@@ -65,7 +65,7 @@ function CheckoutForm({ piece, fees, clientSecret }) {
       </div>
 
       {/* Stripe Payment Element */}
-      <div style={{ padding: 'var(--sp-4)', background: 'rgba(21,23,26,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(21,23,26,0.08)' }}>
+      <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Payment Details</div>
         <PaymentElement options={{ layout: 'tabs' }} />
       </div>
@@ -191,12 +191,12 @@ export default function Checkout() {
   if (!piece) return null
 
   const appearance = {
-    theme: 'stripe',
+    theme: 'night',
     variables: {
-      colorPrimary: '#A9713D',
-      colorBackground: '#FFFFFF',
-      colorText: '#15171A',
-      colorDanger: '#E23535',
+      colorPrimary: '#FFE314',
+      colorBackground: '#2D2D2D',
+      colorText: '#FFFFFF',
+      colorDanger: '#FF5A5A',
       fontFamily: 'DM Sans, system-ui, sans-serif',
       borderRadius: '12px',
     },

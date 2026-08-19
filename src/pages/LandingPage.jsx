@@ -118,7 +118,7 @@ function RoyaltyFlowDemo() {
               width: i === stage ? 20 : 6,
               height: 6,
               borderRadius: 999,
-              background: i === stage ? 'var(--gold)' : 'rgba(21,23,26,0.15)',
+              background: i === stage ? 'var(--gold)' : 'rgba(255,255,255,0.15)',
               transition: 'all 0.3s ease',
             }}
           />
@@ -322,7 +322,7 @@ export default function LandingPage() {
         maxWidth: 1100,
         margin: '0 auto',
         padding: 'var(--sp-6) var(--sp-5)',
-        borderTop: '1px solid rgba(21,23,26,0.08)',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',

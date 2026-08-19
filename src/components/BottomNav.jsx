@@ -1,23 +1,31 @@
 // src/components/BottomNav.jsx
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, Radio, ShoppingBag, User, LayoutDashboard } from 'lucide-react'
+import { Home, Radio, ShoppingBag, User, LayoutDashboard, PlusSquare } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
+// Tab labels/order follow Whatnot's live-shopping nav pattern (Home / Live /
+// Shop / Sell / Account), adapted to this app's actual routes.
 const navItems = [
-  { label: 'Discover',  icon: Home,          path: '/' },
-  { label: 'Live',      icon: Radio,         path: '/live' },
-  { label: 'Store',     icon: ShoppingBag,   path: '/store' },
-  { label: 'Profile',   icon: User,          path: '/profile' },
+  { label: 'Home',   icon: Home,        path: '/' },
+  { label: 'Live',   icon: Radio,       path: '/live' },
+  { label: 'Shop',   icon: ShoppingBag, path: '/store' },
+  { label: 'Account',icon: User,        path: '/profile' },
 ]
 
 export default function BottomNav() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const { isAdmin } = useAuth()
+  const { isAdmin, isArtist } = useAuth()
 
-  const items = isAdmin
-    ? [...navItems, { label: 'Admin', icon: LayoutDashboard, path: '/admin' }]
-    : navItems
+  // Whatnot separates buying from selling with its own nav entry (Seller
+  // Hub) - artists here get a "Sell" tab the same way, inserted before Account.
+  let items = navItems
+  if (isArtist) {
+    items = [...items.slice(0, 3), { label: 'Sell', icon: PlusSquare, path: '/go-live' }, ...items.slice(3)]
+  }
+  if (isAdmin) {
+    items = [...items, { label: 'Admin', icon: LayoutDashboard, path: '/admin' }]
+  }
 
   return (
     <nav className="bottom-nav">

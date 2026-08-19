@@ -8,7 +8,7 @@
 ## Phase 1 — What's Built
 
 - ✅ PWA shell (installable on Android/iOS)
-- ✅ Full design system (warm cream / wood-brown / near-black, matched to the indieartgallery.live logo)
+- ✅ Full design system (Whatnot-style dark theme: near-black background, brand yellow + live-red accents, colors pixel-sampled from real Whatnot screenshots)
 - ✅ Firebase Auth (signup with role selection, login)
 - ✅ Firestore user profiles
 - ✅ Discover page (live shows + art grid + filters)

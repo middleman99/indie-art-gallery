@@ -417,7 +417,7 @@ export default function PieceDetail() {
         )}
 
         {piece.provenance && (
-          <div style={{ padding: 'var(--sp-4)', background: 'rgba(21,23,26,0.03)', borderRadius: 'var(--r-md)', border: '1px solid rgba(21,23,26,0.06)', marginBottom: 'var(--sp-5)' }}>
+          <div style={{ padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.06)', marginBottom: 'var(--sp-5)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--slate)', marginBottom: 'var(--sp-2)' }}>
               <ShieldCheck size={13} /> Provenance & Condition
             </div>
@@ -447,7 +447,7 @@ export default function PieceDetail() {
                 <span style={{ color: 'var(--slate)', fontSize: 'var(--text-sm)' }}>Buyer's premium ({fees.buyerPremiumPercent}%)</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', color: 'var(--slate)' }}>+${fees.buyerPremiumAmount}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 'var(--sp-3)', borderTop: '1px solid rgba(21,23,26,0.08)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 'var(--sp-3)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
                 <span style={{ fontWeight: 600 }}>Total</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--cream)' }}>${fees.total}</span>
               </div>
@@ -499,7 +499,7 @@ export default function PieceDetail() {
                 <span style={{ color: 'var(--slate)', fontSize: 'var(--text-sm)' }}>Buyer's premium ({fees.buyerPremiumPercent}%)</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', color: 'var(--slate)' }}>+${fees.buyerPremiumAmount}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 'var(--sp-3)', borderTop: '1px solid rgba(21,23,26,0.08)', marginBottom: 'var(--sp-4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 'var(--sp-3)', borderTop: '1px solid rgba(255,255,255,0.08)', marginBottom: 'var(--sp-4)' }}>
                 <span style={{ fontWeight: 600 }}>Total if you win</span>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--cream)' }}>${fees.total}</span>
               </div>
@@ -529,7 +529,7 @@ export default function PieceDetail() {
         </div>
 
         {piece.deliveryType === 'physical' && (
-          <div style={{ padding: 'var(--sp-3)', background: 'rgba(21,23,26,0.04)', borderRadius: 'var(--r-md)', marginBottom: 'var(--sp-4)', fontSize: 'var(--text-xs)', color: 'var(--slate)', display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-3)' }}>
+          <div style={{ padding: 'var(--sp-3)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', marginBottom: 'var(--sp-4)', fontSize: 'var(--text-xs)', color: 'var(--slate)', display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-3)' }}>
             <Clock size={14} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>Once you receive this piece, confirm delivery from your Orders page to release payment to the artist.</span>
           </div>
@@ -553,7 +553,7 @@ export default function PieceDetail() {
         )}
 
         {showOffer && (
-          <div style={{ marginTop: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(21,23,26,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(21,23,26,0.08)' }}>
+          <div style={{ marginTop: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(255,255,255,0.04)', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.08)' }}>
             <div className="input-label" style={{ marginBottom: 'var(--sp-3)' }}>Your Offer</div>
             <div style={{ display: 'flex', gap: 'var(--sp-3)' }}>
               <div style={{ position: 'relative', flex: 1 }}>
